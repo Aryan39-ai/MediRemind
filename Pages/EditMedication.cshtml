@@ -1,0 +1,68 @@
+@page "/EditMedication/{id:int}"
+@model MediRemind.Pages.EditMedicationModel
+@{ ViewData["Title"] = "Edit Medication"; Layout = "_Layout"; }
+
+@if (Model.Medication == null)
+{
+    <div class="min-h-screen flex items-center justify-center">
+        <p class="text-slate-500">Medication not found.</p>
+    </div>
+}
+else
+{
+<section class="max-w-2xl mx-auto px-4 py-12">
+    <a href="/Medications" class="text-slate-500 hover:text-primary text-sm">← Back to medications</a>
+    <h1 class="text-3xl font-extrabold text-ink mt-3 mb-8">Edit @Model.Medication.Name</h1>
+
+    @if (Model.ErrorMessage != null)
+    {
+        <div class="bg-red-50 border border-red-300 text-red-700 rounded-xl px-4 py-3 mb-6 text-sm">@Model.ErrorMessage</div>
+    }
+
+    <form method="post" class="bg-white rounded-2xl shadow-sm border border-slate-100 p-8 space-y-5">
+        @Html.AntiForgeryToken()
+        <div>
+            <label class="block text-sm font-semibold text-slate-700 mb-1">Medication Name</label>
+            <input asp-for="Input.Name" class="inp" />
+            <span asp-validation-for="Input.Name" class="text-red-500 text-xs"></span>
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+            <div>
+                <label class="block text-sm font-semibold text-slate-700 mb-1">Dosage</label>
+                <input asp-for="Input.Dosage" class="inp" />
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-slate-700 mb-1">Frequency</label>
+                <select asp-for="Input.Frequency" class="inp">
+                    <option>Once daily</option>
+                    <option>Twice daily</option>
+                    <option>Three times daily</option>
+                    <option>Four times daily</option>
+                    <option>As needed</option>
+                    <option>Weekly</option>
+                </select>
+            </div>
+        </div>
+        <div>
+            <label class="block text-sm font-semibold text-slate-700 mb-1">Times of Day</label>
+            <input asp-for="Input.TimesOfDay" class="inp" />
+        </div>
+        <div>
+            <label class="block text-sm font-semibold text-slate-700 mb-1">Instructions</label>
+            <textarea asp-for="Input.Instructions" rows="2" class="inp resize-none"></textarea>
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+            <div>
+                <label class="block text-sm font-semibold text-slate-700 mb-1">Current Pill Count <span class="text-slate-400 font-normal">(optional)</span></label>
+                <input asp-for="Input.PillCount" type="number" min="0" class="inp" />
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-slate-700 mb-1">Pills Per Dose <span class="text-slate-400 font-normal">(optional)</span></label>
+                <input asp-for="Input.PillsPerDose" type="number" min="1" class="inp" />
+            </div>
+        </div>
+
+        <button type="submit" class="w-full bg-primary text-white font-bold py-3.5 rounded-xl hover:bg-primary-dark transition">Save Changes</button>
+    </form>
+</section>
+}

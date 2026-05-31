@@ -1,0 +1,112 @@
+@page
+@model MediRemind.Pages.IndexModel
+@{ ViewData["Title"] = "Home"; }
+
+<!-- HERO -->
+<section class="bg-gradient-to-br from-primary to-primary-dark text-white py-24 px-4">
+    <div class="max-w-4xl mx-auto text-center">
+        <span class="inline-block bg-white/20 text-white text-xs font-bold uppercase tracking-widest px-3 py-1 rounded-full mb-5">Free to use &middot; No account required to explore</span>
+        <h1 class="text-4xl sm:text-5xl lg:text-6xl font-extrabold leading-tight mb-6">
+            Track your medications.<br/><span class="text-primary-light">Stay on schedule.</span>
+        </h1>
+        <p class="text-sky-100 text-lg max-w-2xl mx-auto mb-10">
+            MediRemind helps you and your family keep on top of medication schedules.
+            Log doses, monitor adherence, and share access with a carer.
+        </p>
+        <div class="flex flex-col sm:flex-row gap-4 justify-center">
+            <a href="/Register" class="bg-white text-primary-dark font-bold px-8 py-4 rounded-xl hover:bg-slate-100 transition">Get Started</a>
+            <a href="/About" class="border border-white/40 text-white font-semibold px-8 py-4 rounded-xl hover:bg-white/10 transition">Learn More</a>
+        </div>
+    </div>
+</section>
+
+<!-- WHO IT HELPS -->
+<section class="py-20 px-4">
+    <div class="max-w-5xl mx-auto">
+        <h2 class="text-3xl font-extrabold text-center text-ink mb-2">Built for people who rely on medication</h2>
+        <p class="text-slate-500 text-center mb-12">Especially those managing multiple prescriptions</p>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 text-center">
+                <div class="w-12 h-12 bg-sky-100 rounded-xl flex items-center justify-center mx-auto mb-4">
+                    <svg class="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                    </svg>
+                </div>
+                <h3 class="font-bold text-ink mb-2">Older Adults</h3>
+                <p class="text-slate-500 text-sm">Many people juggle multiple prescriptions every day. A clear daily view makes it manageable.</p>
+            </div>
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 text-center">
+                <div class="w-12 h-12 bg-sky-100 rounded-xl flex items-center justify-center mx-auto mb-4">
+                    <svg class="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+                    </svg>
+                </div>
+                <h3 class="font-bold text-ink mb-2">Chronic Conditions</h3>
+                <p class="text-slate-500 text-sm">Diabetes, blood pressure, heart conditions — consistent dosing is important for managing them well.</p>
+            </div>
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 text-center">
+                <div class="w-12 h-12 bg-sky-100 rounded-xl flex items-center justify-center mx-auto mb-4">
+                    <svg class="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+                    </svg>
+                </div>
+                <h3 class="font-bold text-ink mb-2">Caregivers and Families</h3>
+                <p class="text-slate-500 text-sm">Share access with a family member so they can monitor dosing schedules and help where needed.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- FEATURES -->
+<section class="py-20 px-4 bg-white border-y border-slate-100">
+    <div class="max-w-5xl mx-auto">
+        <h2 class="text-3xl font-extrabold text-center text-ink mb-12">Everything you need to stay on track</h2>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            @foreach (var f in Model.Features)
+            {
+                <div class="bg-soft border border-sky-100 rounded-2xl p-6">
+                    <div class="w-10 h-10 bg-white border border-sky-200 rounded-xl flex items-center justify-center mb-4">
+                        <svg class="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="@f.SvgPath"/>
+                        </svg>
+                    </div>
+                    <h3 class="font-bold text-ink mb-1">@f.Title</h3>
+                    <p class="text-slate-500 text-sm">@f.Description</p>
+                </div>
+            }
+        </div>
+    </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="py-20 px-4">
+    <div class="max-w-4xl mx-auto">
+        <h2 class="text-3xl font-extrabold text-center text-ink mb-12">How it works</h2>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div class="text-center">
+                <div class="w-12 h-12 bg-primary text-white font-bold text-xl rounded-full flex items-center justify-center mx-auto mb-4">1</div>
+                <h3 class="font-bold text-ink mb-2">Create an account</h3>
+                <p class="text-slate-500 text-sm">Register in seconds. No payment or credit card required.</p>
+            </div>
+            <div class="text-center">
+                <div class="w-12 h-12 bg-primary text-white font-bold text-xl rounded-full flex items-center justify-center mx-auto mb-4">2</div>
+                <h3 class="font-bold text-ink mb-2">Add your medications</h3>
+                <p class="text-slate-500 text-sm">Enter names, dosages, and times. The app builds your daily schedule.</p>
+            </div>
+            <div class="text-center">
+                <div class="w-12 h-12 bg-primary text-white font-bold text-xl rounded-full flex items-center justify-center mx-auto mb-4">3</div>
+                <h3 class="font-bold text-ink mb-2">Log doses each day</h3>
+                <p class="text-slate-500 text-sm">Mark each dose as taken and track your adherence over time.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- CTA -->
+<section class="py-20 px-4 bg-primary">
+    <div class="max-w-xl mx-auto text-center">
+        <h2 class="text-3xl font-extrabold text-white mb-4">Start tracking your medications today</h2>
+        <p class="text-sky-100 mb-8">MediRemind is free to use with no hidden costs or data collection.</p>
+        <a href="/Register" class="inline-block bg-white text-primary-dark font-bold px-10 py-4 rounded-xl hover:bg-slate-100 transition">Create a Free Account</a>
+    </div>
+</section>

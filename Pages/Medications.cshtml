@@ -1,0 +1,150 @@
+@page
+@model MediRemind.Pages.MedicationsModel
+@{ ViewData["Title"] = "My Medications"; }
+
+@functions {
+    static string NextDoseLabel(string timesOfDay)
+    {
+        if (string.IsNullOrWhiteSpace(timesOfDay)) return "No times set";
+        var now = DateTime.Now.TimeOfDay;
+        var times = timesOfDay.Split(',')
+            .Select(t => t.Trim())
+            .Where(t => TimeSpan.TryParse(t, out _))
+            .Select(TimeSpan.Parse)
+            .OrderBy(t => t)
+            .ToList();
+        if (!times.Any()) return timesOfDay;
+        var next = times.FirstOrDefault(t => t > now);
+        if (next == default)
+        {
+            var first = times.First();
+            return $"Tomorrow at {(int)first.TotalHours:D2}:{first.Minutes:D2}";
+        }
+        return $"Today at {(int)next.TotalHours:D2}:{next.Minutes:D2}";
+    }
+}
+
+@if (!Model.IsLoggedIn)
+{
+    <div class="min-h-screen flex items-center justify-center px-4">
+        <div class="text-center">
+            <p class="text-slate-500 mb-4">Please log in to manage your medications.</p>
+            <a href="/Login" class="bg-primary text-white font-bold px-6 py-3 rounded-xl hover:bg-primary-dark transition">Log In</a>
+        </div>
+    </div>
+}
+else
+{
+<section class="max-w-5xl mx-auto px-4 py-12">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+        <div>
+            <h1 class="text-3xl font-extrabold text-ink">My Medications</h1>
+            <p class="text-slate-500 text-sm">@Model.Medications.Count active medication@(Model.Medications.Count == 1 ? "" : "s")</p>
+        </div>
+        <a href="/AddMedication" class="inline-block bg-primary text-white font-bold px-6 py-3 rounded-xl hover:bg-primary-dark transition text-sm">+ Add Medication</a>
+    </div>
+
+    @if (Model.SuccessMessage != null)
+    {
+        <div class="bg-green-50 border border-green-300 text-green-700 rounded-xl px-4 py-3 mb-6 text-sm font-semibold">@Model.SuccessMessage</div>
+    }
+
+    @if (Model.Medications.Any())
+    {
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            @foreach (var med in Model.Medications)
+            {
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden hover:shadow-md transition">
+                    <div class="h-2 bg-primary"></div>
+                    <div class="p-5">
+                        <h3 class="text-lg font-bold text-ink">@med.Name</h3>
+                        <p class="text-primary font-semibold text-sm">@med.Dosage · @med.Frequency</p>
+
+                        <div class="mt-4 space-y-2 text-sm">
+                            <div class="flex items-start gap-2">
+                                <svg class="w-4 h-4 text-slate-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                                <span class="text-slate-600">@(string.IsNullOrEmpty(med.TimesOfDay) ? "No times set" : med.TimesOfDay)</span>
+                            </div>
+                            @if (!string.IsNullOrEmpty(med.Instructions))
+                            {
+                                <div class="flex items-start gap-2">
+                                    <svg class="w-4 h-4 text-slate-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-3-3v6M5 3a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V5a2 2 0 00-2-2H5z"/>
+                                    </svg>
+                                    <span class="text-slate-600">@med.Instructions</span>
+                                </div>
+                            }
+                            <div class="flex items-start gap-2">
+                                <svg class="w-4 h-4 text-slate-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                                <span class="text-slate-600 text-xs font-medium">@NextDoseLabel(med.TimesOfDay)</span>
+                            </div>
+                        </div>
+
+                        @{
+                            var dosesPerDay = med.Frequency switch {
+                                "Twice daily"       => 2,
+                                "Three times daily" => 3,
+                                "Four times daily"  => 4,
+                                "Weekly"            => 1.0 / 7,
+                                _                   => 1
+                            };
+                            var pillsPerDose  = med.PillsPerDose ?? 1;
+                            var daysLeft      = med.PillCount.HasValue
+                                                ? (int)(med.PillCount.Value / (dosesPerDay * pillsPerDose))
+                                                : (int?)null;
+                            var refillSoon    = daysLeft.HasValue && daysLeft <= 7;
+                        }
+                        @if (refillSoon)
+                        {
+                            <div class="mt-3 flex items-center gap-1.5 bg-red-50 border border-red-200 text-red-700 rounded-lg px-3 py-2 text-xs font-semibold">
+                                <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                                Refill soon — ~@daysLeft day@(daysLeft == 1 ? "" : "s") remaining
+                            </div>
+                        }
+                        else if (daysLeft.HasValue)
+                        {
+                            <div class="mt-3 flex items-center gap-1.5 text-slate-500 text-xs">
+                                <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                                ~@daysLeft day@(daysLeft == 1 ? "" : "s") of supply left
+                            </div>
+                        }
+
+                        <div class="flex gap-2 mt-4 pt-4 border-t border-slate-100">
+                            <a href="/EditMedication/@med.Id" class="flex-1 text-center bg-soft text-primary text-sm font-semibold py-2 rounded-lg hover:bg-sky-100 transition">Edit</a>
+                            <form method="post" asp-page-handler="Delete" onsubmit="return confirm('Stop tracking @med.Name?');" class="inline">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="id" value="@med.Id" />
+                                <button type="submit" class="px-3 py-2 text-sm text-slate-400 hover:text-red-500 border border-slate-200 rounded-lg transition" title="Remove">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                    </svg>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+    else
+    {
+        <div class="bg-white rounded-2xl border border-slate-100 p-16 text-center">
+            <div class="w-12 h-12 bg-slate-100 rounded-xl flex items-center justify-center mx-auto mb-4">
+                <svg class="w-6 h-6 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                </svg>
+            </div>
+            <p class="text-slate-500 mb-4">No medications added yet.</p>
+            <a href="/AddMedication" class="text-primary font-bold hover:underline">Add your first medication</a>
+        </div>
+    }
+</section>
+}

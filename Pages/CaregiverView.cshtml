@@ -1,0 +1,128 @@
+@page "/CaregiverView/{id:int}"
+@model MediRemind.Pages.CaregiverViewModel
+@{ ViewData["Title"] = "Patient View"; }
+
+@if (!Model.IsAuthorised)
+{
+    <div class="min-h-screen flex items-center justify-center px-4">
+        <div class="text-center">
+            <p class="text-slate-500 mb-4">You are not authorised to view this patient's schedule.</p>
+            <a href="/Dashboard" class="text-primary font-bold hover:underline">Back to dashboard</a>
+        </div>
+    </div>
+}
+else
+{
+<section class="max-w-4xl mx-auto px-4 py-12">
+    <a href="/Dashboard" class="text-slate-500 hover:text-primary text-sm">← Back to my dashboard</a>
+
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mt-4 mb-8">
+        <div>
+            <span class="inline-block bg-sky-100 text-sky-700 text-xs font-bold uppercase tracking-widest px-3 py-1 rounded-full mb-2">Read-only view</span>
+            <h1 class="text-3xl font-extrabold text-ink">@Model.PatientName's Schedule</h1>
+            <p class="text-slate-500 text-sm">@DateTime.Today.ToString("dddd, dd MMMM yyyy")</p>
+        </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="grid grid-cols-3 gap-3 sm:gap-4 mb-8">
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 sm:p-5">
+            <p class="text-xs text-slate-400 uppercase tracking-widest mb-1">Today</p>
+            <p class="text-3xl sm:text-4xl font-extrabold text-primary">@Model.TodayTotal</p>
+            <p class="text-xs text-slate-500 mt-1">Doses scheduled</p>
+        </div>
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 sm:p-5">
+            <p class="text-xs text-slate-400 uppercase tracking-widest mb-1">Taken</p>
+            <p class="text-3xl sm:text-4xl font-extrabold text-green-600">@Model.TodayTaken</p>
+            <p class="text-xs text-slate-500 mt-1">So far today</p>
+        </div>
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 sm:p-5">
+            <p class="text-xs text-slate-400 uppercase tracking-widest mb-1">Adherence</p>
+            <p class="text-3xl sm:text-4xl font-extrabold text-ink">@Model.WeekAdherence%</p>
+            @{
+                var barColor = Model.WeekAdherence >= 80 ? "bg-green-500"
+                             : Model.WeekAdherence >= 50 ? "bg-amber-400" : "bg-red-400";
+            }
+            <div class="w-full bg-slate-100 rounded-full h-1.5 mt-2">
+                <div class="@barColor h-1.5 rounded-full" style="width: @Model.WeekAdherence%"></div>
+            </div>
+            <p class="text-xs text-slate-500 mt-1.5">This week</p>
+        </div>
+    </div>
+
+    <!-- Schedule -->
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+        <div class="px-6 py-4 border-b border-slate-100">
+            <h2 class="font-bold text-ink">Today's Schedule</h2>
+        </div>
+
+        @if (Model.TodayDoses.Any())
+        {
+            <div class="divide-y divide-slate-100">
+                @foreach (var d in Model.TodayDoses)
+                {
+                    var rowBg = (d.IsPast && d.Status == "Pending") ? "bg-red-50" : "";
+                    <div class="px-6 py-4 flex items-center gap-4 @rowBg">
+                        <div class="flex-shrink-0">
+                            @if (d.Status == "Taken")
+                            {
+                                <div class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center text-green-600">
+                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
+                                </div>
+                            }
+                            else if (d.Status == "Skipped")
+                            {
+                                <div class="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-400">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/></svg>
+                                </div>
+                            }
+                            else if (d.IsPast)
+                            {
+                                <div class="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center text-red-500">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center text-amber-600">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                </div>
+                            }
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <p class="font-bold text-ink truncate">@d.MedicationName <span class="text-slate-400 font-normal">· @d.Dosage</span></p>
+                            <p class="text-sm text-slate-500">@d.ScheduledFor.ToString("HH:mm")
+                                @if (!string.IsNullOrEmpty(d.Instructions)) { <span class="hidden sm:inline">· @d.Instructions</span> }
+                            </p>
+                        </div>
+                        <div class="flex-shrink-0 text-xs font-semibold">
+                            @if (d.Status == "Taken")
+                            {
+                                <span class="text-green-600">Taken @d.TakenAt?.ToString("HH:mm")</span>
+                            }
+                            else if (d.Status == "Skipped")
+                            {
+                                <span class="text-slate-400">Skipped</span>
+                            }
+                            else if (d.IsPast)
+                            {
+                                <span class="text-red-500">Overdue</span>
+                            }
+                            else
+                            {
+                                <span class="text-amber-600">Pending</span>
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="px-6 py-12 text-center text-slate-500 text-sm">
+                No dose logs found for today. The patient may not have opened their dashboard yet.
+            </div>
+        }
+    </div>
+</section>
+}

@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en" id="htmlRoot">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] – MediRemind</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: { DEFAULT: '#0284c7', dark: '#0369a1', light: '#7dd3fc' },
+                        ink:     { DEFAULT: '#0c4a6e', light: '#334155' },
+                        soft:    { DEFAULT: '#f0f9ff' }
+                    },
+                    fontFamily: { sans: ['Inter', 'ui-sans-serif', 'system-ui'] }
+                }
+            }
+        }
+    </script>
+    <!-- Apply dark mode before render to avoid flash -->
+    <script>if (localStorage.getItem('theme') === 'dark') document.getElementById('htmlRoot').classList.add('dark');</script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="~/css/site.css" />
+</head>
+<body class="bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 font-sans min-h-screen flex flex-col transition-colors">
+
+    <!-- NAVBAR -->
+    <nav class="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 sticky top-0 z-50 shadow-sm">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <a href="/" class="flex items-center gap-2">
+                    <div class="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+                        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 12h6m-3-3v6m-9 1V7a4 4 0 014-4h10a4 4 0 014 4v10a4 4 0 01-4 4H7a4 4 0 01-4-4z"/>
+                        </svg>
+                    </div>
+                    <span class="text-xl font-extrabold tracking-tight"><span class="text-primary">Medi</span><span class="text-ink dark:text-slate-100">Remind</span></span>
+                </a>
+
+                <div class="hidden md:flex items-center gap-6 text-sm font-semibold text-slate-600 dark:text-slate-300">
+                    <a href="/" class="hover:text-primary transition">Home</a>
+                    @if (Context.Session.GetString("UserId") != null)
+                    {
+                        <a href="/Dashboard" class="hover:text-primary transition">Today</a>
+                        <a href="/Medications" class="hover:text-primary transition">Medications</a>
+                        <a href="/History" class="hover:text-primary transition">History</a>
+                        <a href="/Caregivers" class="hover:text-primary transition">Caregivers</a>
+                        <a href="/EditProfile" class="hover:text-primary transition">Profile</a>
+                        <a href="/Logout" onclick="return confirm('Are you sure you want to log out?')" class="text-slate-400 hover:text-slate-600 transition text-xs">Logout</a>
+                    }
+                    else
+                    {
+                        <a href="/About" class="hover:text-primary transition">About</a>
+                        <a href="/Contact" class="hover:text-primary transition">Contact</a>
+                        <a href="/Login" class="hover:text-primary transition">Login</a>
+                        <a href="/Register" class="bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary-dark transition font-bold text-xs">Get Started</a>
+                    }
+                    <!-- Dark mode toggle -->
+                    <button id="darkToggle" aria-label="Toggle dark mode"
+                            class="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-primary hover:bg-slate-100 dark:hover:bg-slate-700 transition">
+                        <svg id="iconSun" class="w-5 h-5 hidden dark:block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707M17.657 17.657l-.707-.707M6.343 6.343l-.707-.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
+                        </svg>
+                        <svg id="iconMoon" class="w-5 h-5 block dark:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
+                        </svg>
+                    </button>
+                </div>
+
+                <button id="menuBtn" class="md:hidden text-slate-600 dark:text-slate-300 focus:outline-none" aria-label="Toggle menu">
+                    <svg id="iconOpen" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+                    <svg id="iconClose" class="w-6 h-6 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+        </div>
+
+        <div id="mobileMenu" class="hidden md:hidden border-t border-slate-200 dark:border-slate-700 px-4 pb-4 pt-3 bg-white dark:bg-slate-800">
+            <div class="flex flex-col gap-3 text-sm font-semibold text-slate-600 dark:text-slate-300">
+                <a href="/" class="hover:text-primary transition">Home</a>
+                @if (Context.Session.GetString("UserId") != null)
+                {
+                    <a href="/Dashboard" class="hover:text-primary transition">Today</a>
+                    <a href="/Medications" class="hover:text-primary transition">Medications</a>
+                    <a href="/History" class="hover:text-primary transition">History</a>
+                    <a href="/Caregivers" class="hover:text-primary transition">Caregivers</a>
+                    <a href="/EditProfile" class="hover:text-primary transition">Profile</a>
+                    <a href="/Logout" onclick="return confirm('Are you sure you want to log out?')" class="text-slate-400">Logout</a>
+                }
+                else
+                {
+                    <a href="/About" class="hover:text-primary transition">About</a>
+                    <a href="/Contact" class="hover:text-primary transition">Contact</a>
+                    <a href="/Login" class="hover:text-primary transition">Login</a>
+                    <a href="/Register" class="text-primary font-bold">Get Started</a>
+                }
+            </div>
+        </div>
+    </nav>
+
+    <main class="flex-1">@RenderBody()</main>
+
+    <footer class="bg-ink text-slate-300 py-10 mt-16 print:hidden">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-4 text-sm">
+            <p class="font-extrabold text-white text-lg"><span class="text-primary-light">Medi</span>Remind</p>
+            <p>© 2026 MediRemind</p>
+            <div class="flex gap-4">
+                <a href="/About" class="hover:text-primary-light transition">About</a>
+                <a href="/Contact" class="hover:text-primary-light transition">Contact</a>
+            </div>
+        </div>
+    </footer>
+
+    <script src="~/js/site.js"></script>
+    <script>
+        // Dark mode toggle
+        document.getElementById('darkToggle')?.addEventListener('click', () => {
+            const html = document.getElementById('htmlRoot');
+            html.classList.toggle('dark');
+            localStorage.setItem('theme', html.classList.contains('dark') ? 'dark' : 'light');
+        });
+    </script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

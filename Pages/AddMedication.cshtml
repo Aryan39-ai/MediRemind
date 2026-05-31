@@ -1,0 +1,89 @@
+@page
+@model MediRemind.Pages.AddMedicationModel
+@{ ViewData["Title"] = "Add Medication"; }
+
+@if (HttpContext.Session.GetString("UserId") == null)
+{
+    <div class="min-h-screen flex items-center justify-center px-4">
+        <p class="text-slate-500">Please <a href="/Login" class="text-primary font-bold">log in</a> first.</p>
+    </div>
+}
+else
+{
+<section class="max-w-2xl mx-auto px-4 py-12">
+    <a href="/Medications" class="text-slate-500 hover:text-primary text-sm">← Back to my medications</a>
+    <h1 class="text-3xl font-extrabold text-ink mt-3 mb-1">Add a Medication</h1>
+    <p class="text-slate-500 text-sm mb-8">Tell us what you take and when. We'll handle the schedule.</p>
+
+    @if (Model.ErrorMessage != null)
+    {
+        <div class="bg-red-50 border border-red-300 text-red-700 rounded-xl px-4 py-3 mb-6 text-sm">@Model.ErrorMessage</div>
+    }
+
+    <form method="post" class="bg-white rounded-2xl shadow-sm border border-slate-100 p-8 space-y-5" novalidate>
+        @Html.AntiForgeryToken()
+
+        <div>
+            <label class="block text-sm font-semibold text-slate-700 mb-1">Medication Name *</label>
+            <input asp-for="Input.Name" placeholder="e.g. Atorvastatin, Metformin..." class="inp" />
+            <span asp-validation-for="Input.Name" class="text-red-500 text-xs"></span>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+            <div>
+                <label class="block text-sm font-semibold text-slate-700 mb-1">Dosage *</label>
+                <input asp-for="Input.Dosage" placeholder="e.g. 20mg, 1 tablet" class="inp" />
+                <span asp-validation-for="Input.Dosage" class="text-red-500 text-xs"></span>
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-slate-700 mb-1">Frequency *</label>
+                <select asp-for="Input.Frequency" class="inp">
+                    <option>Once daily</option>
+                    <option>Twice daily</option>
+                    <option>Three times daily</option>
+                    <option>Four times daily</option>
+                    <option>As needed</option>
+                    <option>Weekly</option>
+                </select>
+            </div>
+        </div>
+
+        <div>
+            <label class="block text-sm font-semibold text-slate-700 mb-1">Times of Day</label>
+            <input asp-for="Input.TimesOfDay" placeholder="e.g. 08:00, 20:00" class="inp" />
+            <p class="text-xs text-slate-400 mt-1">Separate multiple times with commas. Use 24-hour format (08:00, 14:00, 20:00).</p>
+        </div>
+
+        <div>
+            <label class="block text-sm font-semibold text-slate-700 mb-1">Special Instructions <span class="text-slate-400 font-normal">(optional)</span></label>
+            <textarea asp-for="Input.Instructions" rows="2" placeholder="e.g. Take with food, avoid grapefruit..." class="inp resize-none"></textarea>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+            <div>
+                <label class="block text-sm font-semibold text-slate-700 mb-1">Start Date</label>
+                <input asp-for="Input.StartDate" type="date" class="inp" />
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-slate-700 mb-1">End Date <span class="text-slate-400 font-normal">(optional)</span></label>
+                <input asp-for="Input.EndDate" type="date" class="inp" />
+            </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+            <div>
+                <label class="block text-sm font-semibold text-slate-700 mb-1">Current Pill Count <span class="text-slate-400 font-normal">(optional)</span></label>
+                <input asp-for="Input.PillCount" type="number" min="0" placeholder="e.g. 30" class="inp" />
+                <p class="text-xs text-slate-400 mt-1">How many pills you have right now.</p>
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-slate-700 mb-1">Pills Per Dose <span class="text-slate-400 font-normal">(optional)</span></label>
+                <input asp-for="Input.PillsPerDose" type="number" min="1" placeholder="e.g. 1" class="inp" />
+                <p class="text-xs text-slate-400 mt-1">Used to calculate when to refill.</p>
+            </div>
+        </div>
+
+        <button type="submit" class="w-full bg-primary text-white font-bold py-3.5 rounded-xl hover:bg-primary-dark transition">Save Medication</button>
+    </form>
+</section>
+}

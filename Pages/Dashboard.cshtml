@@ -1,0 +1,192 @@
+@page
+@model MediRemind.Pages.DashboardModel
+@{ ViewData["Title"] = "Today's Doses"; }
+
+@if (!Model.IsLoggedIn)
+{
+    <div class="min-h-screen flex items-center justify-center px-4">
+        <p class="text-slate-500">Please <a href="/Login" class="text-primary font-bold">log in</a> first.</p>
+    </div>
+}
+else
+{
+<section class="max-w-4xl mx-auto px-4 py-12">
+
+    <!-- End date warnings -->
+    @foreach (var w in Model.EndDateWarnings)
+    {
+        <div class="bg-amber-50 border border-amber-300 text-amber-800 rounded-xl px-4 py-3 mb-4 text-sm flex items-center gap-2">
+            <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <span><strong>@w.MedicationName</strong> course ends @(w.DaysLeft == 0 ? "today" : $"in {w.DaysLeft} day{(w.DaysLeft == 1 ? "" : "s")}").</span>
+        </div>
+    }
+
+    <!-- Caregiver patient links -->
+    @if (Model.CaregiverPatients.Any())
+    {
+        <div class="bg-sky-50 border border-sky-200 text-sky-800 rounded-xl px-4 py-3 mb-4 text-sm flex flex-wrap items-center gap-3">
+            <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+            </svg>
+            <span class="font-medium">You are a caregiver for:</span>
+            @foreach (var p in Model.CaregiverPatients)
+            {
+                <a href="/CaregiverView/@p.UserId" class="underline font-semibold hover:text-sky-600">@p.UserName</a>
+            }
+        </div>
+    }
+
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+        <div>
+            <p class="text-slate-500 text-sm">@DateTime.Today.ToString("dddd, dd MMMM yyyy")</p>
+            <div class="flex items-center gap-3 flex-wrap">
+                <h1 class="text-3xl font-extrabold text-ink">Good @Model.Greeting, @Model.UserName</h1>
+                @if (Model.Streak >= 2)
+                {
+                    <span class="inline-flex items-center gap-1 bg-orange-100 text-orange-700 text-xs font-bold px-2.5 py-1 rounded-full">
+                        @Model.Streak-day streak
+                    </span>
+                }
+            </div>
+        </div>
+        <a href="/AddMedication" class="inline-block bg-primary text-white font-bold px-6 py-3 rounded-xl hover:bg-primary-dark transition text-sm">+ Add Medication</a>
+    </div>
+
+    <!-- Stats -->
+    <div class="grid grid-cols-3 gap-3 sm:gap-4 mb-8">
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 sm:p-5">
+            <p class="text-xs text-slate-400 uppercase tracking-widest mb-1">Today</p>
+            <p class="text-3xl sm:text-4xl font-extrabold text-primary">@Model.TodayTotal</p>
+            <p class="text-xs text-slate-500 mt-1">Doses scheduled</p>
+        </div>
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 sm:p-5">
+            <p class="text-xs text-slate-400 uppercase tracking-widest mb-1">Taken</p>
+            <p class="text-3xl sm:text-4xl font-extrabold text-green-600">@Model.TodayTaken</p>
+            <p class="text-xs text-slate-500 mt-1">So far today</p>
+        </div>
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 sm:p-5">
+            <p class="text-xs text-slate-400 uppercase tracking-widest mb-1">Adherence</p>
+            <p class="text-3xl sm:text-4xl font-extrabold text-ink">@Model.WeekAdherence%</p>
+            @{
+                var barColor = Model.WeekAdherence >= 80 ? "bg-green-500"
+                             : Model.WeekAdherence >= 50 ? "bg-amber-400"
+                             : "bg-red-400";
+            }
+            <div class="w-full bg-slate-100 rounded-full h-1.5 mt-2">
+                <div class="@barColor h-1.5 rounded-full" style="width: @Model.WeekAdherence%"></div>
+            </div>
+            <p class="text-xs text-slate-500 mt-1.5">This week</p>
+        </div>
+    </div>
+
+    <!-- Today's schedule -->
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+        <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+            <h2 class="font-bold text-ink">Today's Schedule</h2>
+            <span class="text-xs text-slate-400">@DateTime.Now.ToString("HH:mm")</span>
+        </div>
+
+        @if (Model.TodayDoses.Any())
+        {
+            <div class="divide-y divide-slate-100">
+                @foreach (var d in Model.TodayDoses)
+                {
+                    var rowBg = (d.IsPast && d.Status == "Pending") ? "bg-red-50" : "";
+                    <div class="px-6 py-4 flex items-center gap-4 hover:bg-slate-50 transition @rowBg">
+                        <!-- Status indicator -->
+                        <div class="flex-shrink-0">
+                            @if (d.Status == "Taken")
+                            {
+                                <div class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center text-green-600">
+                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
+                                </div>
+                            }
+                            else if (d.Status == "Skipped")
+                            {
+                                <div class="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-400">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/></svg>
+                                </div>
+                            }
+                            else if (d.IsPast)
+                            {
+                                <div class="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center text-red-500">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center text-amber-600">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                </div>
+                            }
+                        </div>
+
+                        <!-- Details -->
+                        <div class="flex-1 min-w-0">
+                            <p class="font-bold text-ink truncate">@d.MedicationName <span class="text-slate-400 font-normal">· @d.Dosage</span></p>
+                            <p class="text-sm text-slate-500">@d.ScheduledFor.ToString("HH:mm")
+                                @if (!string.IsNullOrEmpty(d.Instructions))
+                                {
+                                    <span class="hidden sm:inline">· @d.Instructions</span>
+                                }
+                            </p>
+                        </div>
+
+                        <!-- Action -->
+                        <div class="flex-shrink-0 flex items-center gap-2">
+                            @if (d.Status == "Taken")
+                            {
+                                <span class="text-xs text-green-600 font-semibold">Taken @d.TakenAt?.ToString("HH:mm")</span>
+                            }
+                            else if (d.Status == "Skipped")
+                            {
+                                <span class="text-xs text-slate-400 font-semibold">Skipped</span>
+                            }
+                            else
+                            {
+                                <!-- Mark Taken form with optional notes -->
+                                <form method="post" asp-page-handler="MarkTaken" class="inline flex items-center gap-2">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="logId" value="@d.LogId" />
+                                    <input type="text" name="notes" placeholder="Note (optional)"
+                                           class="hidden sm:block text-xs border border-slate-200 rounded-lg px-2 py-1.5 text-slate-600 w-32 focus:outline-none focus:border-primary" />
+                                    <button type="submit" class="bg-primary text-white text-xs font-bold px-4 py-2 rounded-lg hover:bg-primary-dark transition whitespace-nowrap">
+                                        Mark Taken
+                                    </button>
+                                </form>
+                                <!-- Skip form -->
+                                <form method="post" asp-page-handler="Skip" class="inline">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="logId" value="@d.LogId" />
+                                    <button type="submit" class="text-xs text-slate-400 hover:text-slate-600 border border-slate-200 px-3 py-2 rounded-lg transition" title="Skip this dose">
+                                        Skip
+                                    </button>
+                                </form>
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="px-6 py-16 text-center text-slate-500">
+                <div class="w-12 h-12 bg-slate-100 rounded-xl flex items-center justify-center mx-auto mb-4">
+                    <svg class="w-6 h-6 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                    </svg>
+                </div>
+                <p class="mb-2 font-semibold text-ink">No doses scheduled for today</p>
+                <p class="text-sm">@(Model.HasAnyMedications ? "No doses are due today." : "Add your first medication to start tracking.")</p>
+                @if (!Model.HasAnyMedications)
+                {
+                    <a href="/AddMedication" class="inline-block mt-4 text-primary font-bold hover:underline">Add a medication</a>
+                }
+            </div>
+        }
+    </div>
+</section>
+}

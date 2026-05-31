@@ -1,0 +1,65 @@
+@page
+@model MediRemind.Pages.AboutModel
+@{ ViewData["Title"] = "About"; }
+
+<section class="max-w-3xl mx-auto px-4 py-16">
+    <h1 class="text-4xl font-extrabold text-ink mb-4">About MediRemind</h1>
+    <p class="text-slate-500 text-lg leading-relaxed mb-10">
+        MediRemind was built out of a simple observation — managing multiple medications is harder than it should be.
+        Missed doses, forgotten instructions, no visibility for family members. We built a tool to fix that.
+    </p>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-12">
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
+            <div class="w-10 h-10 bg-sky-100 rounded-xl flex items-center justify-center mb-3">
+                <svg class="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                </svg>
+            </div>
+            <h3 class="font-bold text-ink mb-2">Why we built it</h3>
+            <p class="text-slate-500 text-sm">Medication non-adherence is one of the most common and preventable causes of poor health outcomes. A clear daily schedule and simple logging makes a real difference.</p>
+        </div>
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
+            <div class="w-10 h-10 bg-sky-100 rounded-xl flex items-center justify-center mb-3">
+                <svg class="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                </svg>
+            </div>
+            <h3 class="font-bold text-ink mb-2">Privacy and security</h3>
+            <p class="text-slate-500 text-sm">Your health data is stored securely and never shared with third parties. No advertising, no analytics, no selling of personal information — ever.</p>
+        </div>
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
+            <div class="w-10 h-10 bg-sky-100 rounded-xl flex items-center justify-center mb-3">
+                <svg class="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                </svg>
+            </div>
+            <h3 class="font-bold text-ink mb-2">Works on any device</h3>
+            <p class="text-slate-500 text-sm">No app to download. MediRemind runs in any browser on any phone, tablet, or computer. Open it, log your dose, done.</p>
+        </div>
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
+            <div class="w-10 h-10 bg-sky-100 rounded-xl flex items-center justify-center mb-3">
+                <svg class="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+                </svg>
+            </div>
+            <h3 class="font-bold text-ink mb-2">Always free</h3>
+            <p class="text-slate-500 text-sm">No paid plans, no premium tier, no subscription. MediRemind is and will remain completely free to use.</p>
+        </div>
+    </div>
+
+    <!-- Stack / Tech section -->
+    <div class="border-t border-slate-100 pt-10">
+        <h2 class="text-2xl font-extrabold text-ink mb-3">How it's built</h2>
+        <p class="text-slate-500 text-sm leading-relaxed mb-6">
+            MediRemind is a server-rendered web application. There is no JavaScript framework — pages are fast, accessible, and work without client-side scripting.
+        </p>
+        <div class="flex flex-wrap gap-3">
+            @foreach (var tag in new[] { "ASP.NET Core", "Razor Pages", "Entity Framework Core", "SQLite", "Tailwind CSS", "C#" })
+            {
+                <span class="bg-slate-100 text-slate-600 text-xs font-semibold px-3 py-1.5 rounded-lg">@tag</span>
+            }
+        </div>
+    </div>
+
+</section>
