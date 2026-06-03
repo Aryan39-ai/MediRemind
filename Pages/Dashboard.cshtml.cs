@@ -17,34 +17,31 @@ public class TodayDose
     public bool IsPast => DateTime.Now > ScheduledFor.AddMinutes(60) && Status == "Pending";
 }
 
-public class EndDateWarning
-{
-    public string MedicationName { get; set; } = "";
-    public int DaysLeft { get; set; }
-}
-
-public class CaregiverPatient
-{
-    public int UserId { get; set; }
-    public string UserName { get; set; } = "";
-}
+public class EndDateWarning   { public string MedicationName { get; set; } = ""; public int DaysLeft { get; set; } }
+public class LowSupplyWarning { public string MedicationName { get; set; } = ""; public int PillCount  { get; set; } }
+public class CaregiverPatient { public int UserId { get; set; }  public string UserName { get; set; } = ""; }
 
 public class DashboardModel : PageModel
 {
     private readonly AppDbContext _db;
     public DashboardModel(AppDbContext db) => _db = db;
 
+    // Change this constant to adjust the low-supply threshold
+    private const int LowSupplyThreshold = 14;
+
     public bool IsLoggedIn { get; set; }
     public string UserName { get; set; } = "";
-    public string Greeting { get; set; } = "day";
+    public string Greeting  { get; set; } = "day";
     public bool HasAnyMedications { get; set; }
-    public List<TodayDose> TodayDoses { get; set; } = new();
-    public int TodayTotal => TodayDoses.Count;
-    public int TodayTaken => TodayDoses.Count(d => d.Status == "Taken");
-    public int WeekAdherence { get; set; }
-    public int Streak { get; set; }
-    public List<EndDateWarning> EndDateWarnings { get; set; } = new();
+    public List<TodayDose>      TodayDoses       { get; set; } = new();
+    public List<EndDateWarning>  EndDateWarnings  { get; set; } = new();
+    public List<LowSupplyWarning> LowSupplyWarnings { get; set; } = new();
     public List<CaregiverPatient> CaregiverPatients { get; set; } = new();
+
+    public int TodayTotal  => TodayDoses.Count;
+    public int TodayTaken  => TodayDoses.Count(d => d.Status == "Taken");
+    public int WeekAdherence { get; set; }
+    public int Streak        { get; set; }
 
     public async Task OnGetAsync()
     {
@@ -68,20 +65,33 @@ public class DashboardModel : PageModel
 
         HasAnyMedications = meds.Any();
 
-        // End date warnings (within 7 days)
-        var allMeds = await _db.Medications
-            .Where(m => m.UserId == uid && m.IsActive && m.EndDate != null && m.EndDate >= today && m.EndDate <= today.AddDays(7))
-            .ToListAsync();
-        EndDateWarnings = allMeds.Select(m => new EndDateWarning
-        {
-            MedicationName = m.Name,
-            DaysLeft = (m.EndDate!.Value - today).Days
-        }).ToList();
+        // End-date warnings (within 7 days)
+        EndDateWarnings = (await _db.Medications
+            .Where(m => m.UserId == uid && m.IsActive
+                && m.EndDate != null && m.EndDate >= today && m.EndDate <= today.AddDays(7))
+            .ToListAsync())
+            .Select(m => new EndDateWarning
+            {
+                MedicationName = m.Name,
+                DaysLeft       = (m.EndDate!.Value - today).Days
+            }).ToList();
+
+        // Low-supply warnings
+        LowSupplyWarnings = (await _db.Medications
+            .Where(m => m.UserId == uid && m.IsActive
+                && m.PillCount != null && m.PillCount <= LowSupplyThreshold)
+            .ToListAsync())
+            .Select(m => new LowSupplyWarning
+            {
+                MedicationName = m.Name,
+                PillCount      = m.PillCount!.Value
+            }).ToList();
 
         // Generate today's dose log entries if not already there
         foreach (var med in meds)
         {
-            var times = med.TimesOfDay.Split(',', StringSplitOptions.RemoveEmptyEntries)
+            var times = med.TimesOfDay
+                .Split(',', StringSplitOptions.RemoveEmptyEntries)
                 .Select(s => s.Trim())
                 .Where(s => TimeSpan.TryParse(s, out _))
                 .Select(TimeSpan.Parse);
@@ -89,49 +99,46 @@ public class DashboardModel : PageModel
             foreach (var t in times)
             {
                 var scheduledFor = today.Add(t);
-                var existing = _db.DoseLogs.FirstOrDefault(d =>
-                    d.MedicationId == med.Id && d.ScheduledFor == scheduledFor);
-                if (existing == null)
+                if (!_db.DoseLogs.Any(d => d.MedicationId == med.Id && d.ScheduledFor == scheduledFor))
                     _db.DoseLogs.Add(new DoseLog { MedicationId = med.Id, ScheduledFor = scheduledFor, Status = "Pending" });
             }
         }
         await _db.SaveChangesAsync();
 
         // Today's doses
-        var logs = await _db.DoseLogs
+        TodayDoses = (await _db.DoseLogs
             .Include(d => d.Medication)
             .Where(d => d.Medication.UserId == uid
                 && d.ScheduledFor >= today
                 && d.ScheduledFor < today.AddDays(1))
             .OrderBy(d => d.ScheduledFor)
-            .ToListAsync();
+            .ToListAsync())
+            .Select(l => new TodayDose
+            {
+                LogId          = l.Id,
+                MedicationName = l.Medication.Name,
+                Dosage         = l.Medication.Dosage,
+                Instructions   = l.Medication.Instructions,
+                ScheduledFor   = l.ScheduledFor,
+                Status         = l.Status,
+                TakenAt        = l.TakenAt
+            }).ToList();
 
-        TodayDoses = logs.Select(l => new TodayDose
-        {
-            LogId        = l.Id,
-            MedicationName = l.Medication.Name,
-            Dosage       = l.Medication.Dosage,
-            Instructions = l.Medication.Instructions,
-            ScheduledFor = l.ScheduledFor,
-            Status       = l.Status,
-            TakenAt      = l.TakenAt
-        }).ToList();
-
-        // 7-day adherence
+        // 7-day adherence — Taken / (Taken + Missed + Skipped), excludes still-Pending
         var weekStart = today.AddDays(-7);
-        var weekLogs = await _db.DoseLogs
+        var weekLogs  = await _db.DoseLogs
             .Include(d => d.Medication)
             .Where(d => d.Medication.UserId == uid
                 && d.ScheduledFor >= weekStart
-                && d.ScheduledFor < today
-                && d.ScheduledFor < DateTime.Now)
+                && d.ScheduledFor < today)
             .ToListAsync();
 
-        WeekAdherence = weekLogs.Count == 0
+        var settled = weekLogs.Where(l => l.Status != "Pending").ToList();
+        WeekAdherence = settled.Count == 0
             ? 100
-            : (int)Math.Round(weekLogs.Count(l => l.Status == "Taken") * 100.0 / weekLogs.Count);
+            : (int)Math.Round(settled.Count(l => l.Status == "Taken") * 100.0 / settled.Count);
 
-        // Streak — consecutive days back from yesterday where all doses were taken
+        // Streak — consecutive days (back from yesterday) where at least one dose was Taken
         Streak = 0;
         var checkDate = today.AddDays(-1);
         while (checkDate >= today.AddDays(-365))
@@ -144,23 +151,17 @@ public class DashboardModel : PageModel
                 .ToListAsync();
 
             if (!dayLogs.Any()) break;
-            if (dayLogs.All(l => l.Status == "Taken"))
-                Streak++;
-            else
-                break;
+            if (dayLogs.Any(l => l.Status == "Taken")) Streak++;
+            else break;
 
             checkDate = checkDate.AddDays(-1);
         }
 
-        // Caregiver — find patients this user is carer for
+        // Caregiver — patients this user cares for
         var userEmail = HttpContext.Session.GetString("UserEmail") ?? "";
         if (!string.IsNullOrEmpty(userEmail))
         {
-            var caregiverLinks = await _db.Caregivers
-                .Where(c => c.CaregiverEmail == userEmail)
-                .ToListAsync();
-
-            foreach (var link in caregiverLinks)
+            foreach (var link in await _db.Caregivers.Where(c => c.CaregiverEmail == userEmail).ToListAsync())
             {
                 var patient = await _db.Users.FindAsync(link.PatientUserId);
                 if (patient != null)
@@ -175,16 +176,14 @@ public class DashboardModel : PageModel
         if (userId == null) return RedirectToPage("/Login");
         int uid = int.Parse(userId);
 
-        var log = await _db.DoseLogs
-            .Include(d => d.Medication)
+        var log = await _db.DoseLogs.Include(d => d.Medication)
             .FirstOrDefaultAsync(d => d.Id == logId && d.Medication.UserId == uid);
 
         if (log != null)
         {
-            log.Status = "Taken";
+            log.Status  = "Taken";
             log.TakenAt = DateTime.Now;
-            if (!string.IsNullOrWhiteSpace(notes))
-                log.Notes = notes.Trim();
+            if (!string.IsNullOrWhiteSpace(notes)) log.Notes = notes.Trim();
             await _db.SaveChangesAsync();
         }
         return RedirectToPage();
@@ -196,15 +195,10 @@ public class DashboardModel : PageModel
         if (userId == null) return RedirectToPage("/Login");
         int uid = int.Parse(userId);
 
-        var log = await _db.DoseLogs
-            .Include(d => d.Medication)
+        var log = await _db.DoseLogs.Include(d => d.Medication)
             .FirstOrDefaultAsync(d => d.Id == logId && d.Medication.UserId == uid);
 
-        if (log != null)
-        {
-            log.Status = "Skipped";
-            await _db.SaveChangesAsync();
-        }
+        if (log != null) { log.Status = "Skipped"; await _db.SaveChangesAsync(); }
         return RedirectToPage();
     }
 }

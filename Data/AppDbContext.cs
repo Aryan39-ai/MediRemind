@@ -54,6 +54,15 @@ public class Caregiver
     public DateTime AddedAt { get; set; } = DateTime.UtcNow;
 }
 
+public class PushSubscription
+{
+    public int    Id       { get; set; }
+    public int    UserId   { get; set; }
+    public string Endpoint { get; set; } = "";
+    public string P256dh   { get; set; } = "";
+    public string Auth     { get; set; } = "";
+}
+
 public class ContactMessage
 {
     public int Id { get; set; }
@@ -73,7 +82,8 @@ public class AppDbContext : DbContext
     public DbSet<Medication> Medications => Set<Medication>();
     public DbSet<DoseLog> DoseLogs => Set<DoseLog>();
     public DbSet<Caregiver> Caregivers => Set<Caregiver>();
-    public DbSet<ContactMessage> ContactMessages => Set<ContactMessage>();
+    public DbSet<ContactMessage>  ContactMessages   => Set<ContactMessage>();
+    public DbSet<PushSubscription> PushSubscriptions => Set<PushSubscription>();
 
     protected override void OnModelCreating(ModelBuilder mb)
     {
