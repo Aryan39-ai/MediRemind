@@ -13,12 +13,12 @@ people — especially older adults, chronically ill patients, and their caregive
 - **BCrypt** (password hashing)
 
 ## Features
-- 💊 Add, edit, delete medications with dosage and times
-- 📅 Today's schedule view with one-tap "mark taken" buttons
-- 📊 7-day and 30-day adherence statistics
-- 📋 Full dose history with filter (All / Taken / Missed)
-- 👥 Caregiver access sharing
-- 🔒 Session-based auth with BCrypt-hashed passwords
+-  Add, edit, delete medications with dosage and times
+-  Today's schedule view with one-tap "mark taken" buttons
+-  7-day and 30-day adherence statistics
+-  Full dose history with filter (All / Taken / Missed)
+-  Caregiver access sharing
+-  Session-based auth with BCrypt-hashed passwords
 
 ## Running the app
 ```bash
