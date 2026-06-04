@@ -1,4 +1,27 @@
 /* MediRemind custom CSS */
+
+/* ── Keyboard focus rings (all interactive elements) ── */
+:focus-visible {
+    outline: 2px solid #0284c7;
+    outline-offset: 3px;
+    border-radius: 6px;
+}
+
+/* ── Minimum tap targets for touch ── */
+button,
+input[type="submit"],
+input[type="button"],
+input[type="reset"] {
+    min-height: 44px;
+}
+
+/* ── Nav links: 44 px minimum touch height ── */
+nav a, nav button {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+}
+
 .inp {
     width: 100%;
     border: 1px solid #e2e8f0;
@@ -13,4 +36,164 @@
     outline: none;
     border-color: #0284c7;
     box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15);
+}
+/* Larger touch targets for select and date inputs */
+select.inp,
+input[type="date"].inp {
+    min-height: 3.5rem;
+    font-size: 1.125rem;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   Mobile bottom tab bar
+   ════════════════════════════════════════════════════════════ */
+.bottom-tab-bar {
+    position: sticky;
+    bottom: 0;
+    z-index: 50;
+    height: 72px;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    background: #ffffff;
+    border-top: 1px solid #e2e8f0;
+    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.06);
+}
+
+/* Dark mode */
+html.dark .bottom-tab-bar {
+    background: #1e293b;
+    border-top-color: #334155;
+}
+
+.bottom-tab {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    text-decoration: none;
+    color: #94a3b8;
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    transition: color 0.15s;
+    position: relative;
+    min-height: 72px;
+    -webkit-tap-highlight-color: transparent;
+}
+.bottom-tab:hover {
+    color: #0284c7;
+}
+
+/* Active tab styling */
+.bottom-tab.active-tab {
+    color: #0284c7;
+}
+html.dark .bottom-tab.active-tab {
+    color: #7dd3fc;
+}
+
+/* Active dot indicator */
+.bottom-tab.active-tab::after {
+    content: '';
+    position: absolute;
+    bottom: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: #0284c7;
+}
+html.dark .bottom-tab.active-tab::after {
+    background: #7dd3fc;
+}
+
+/* High contrast overrides */
+html.high-contrast .bottom-tab-bar {
+    background: #ffffff !important;
+    border-top: 3px solid #000000 !important;
+}
+html.high-contrast .bottom-tab {
+    color: #555555 !important;
+}
+html.high-contrast .bottom-tab.active-tab {
+    color: #000000 !important;
+}
+html.high-contrast .bottom-tab.active-tab::after {
+    background: #000000 !important;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   Print styles
+   ════════════════════════════════════════════════════════════ */
+@media print {
+    /* Hide chrome */
+    nav,
+    footer,
+    .print-hide,
+    .bottom-tab-bar {
+        display: none !important;
+    }
+
+    /* Force clean styling */
+    body,
+    html {
+        background: #fff !important;
+        color: #000 !important;
+        font-size: 14pt !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    /* Remove dark mode */
+    html.dark body,
+    html.dark {
+        background: #fff !important;
+        color: #000 !important;
+    }
+
+    /* Remove shadows, borders on cards */
+    main {
+        padding-bottom: 0 !important;
+    }
+
+    /* Print table styling */
+    .print-table {
+        width: 100% !important;
+        border-collapse: collapse !important;
+    }
+    .print-table th,
+    .print-table td {
+        border: 1px solid #000 !important;
+        padding: 8px 10px !important;
+        color: #000 !important;
+        background: #fff !important;
+        font-size: 12pt !important;
+        text-align: left !important;
+    }
+    .print-table th {
+        background: #f0f0f0 !important;
+        font-weight: 700 !important;
+        font-size: 11pt !important;
+    }
+    .print-table tr {
+        page-break-inside: avoid;
+    }
+    .print-table thead {
+        display: table-header-group;
+    }
+
+    /* Page break rules */
+    h1, h2, h3 {
+        page-break-after: avoid;
+    }
+    table {
+        page-break-inside: auto;
+    }
+
+    /* Force all text black */
+    * {
+        color: #000 !important;
+    }
 }

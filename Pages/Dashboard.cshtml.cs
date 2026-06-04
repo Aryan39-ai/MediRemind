@@ -39,9 +39,15 @@ public class DashboardModel : PageModel
     public List<CaregiverPatient> CaregiverPatients { get; set; } = new();
 
     public int TodayTotal  => TodayDoses.Count;
-    public int TodayTaken  => TodayDoses.Count(d => d.Status == "Taken");
+    public int TodayTaken  => TodayDoses.Count(d => d.Status == "Taken" || d.Status == "PendingConfirm");
     public int WeekAdherence { get; set; }
     public int Streak        { get; set; }
+
+    // ── Next dose countdown banner ────────────────────────────────────────────
+    public string BannerType    { get; set; } = "";  // "upcoming"|"soon"|"overdue"|"allgood"
+    public string BannerMedName { get; set; } = "";
+    public string BannerTime    { get; set; } = "";
+    public string AlreadyTakenId { get; set; } = "";
 
     public async Task OnGetAsync()
     {
@@ -56,6 +62,16 @@ public class DashboardModel : PageModel
         Greeting = hour < 12 ? "morning" : hour < 18 ? "afternoon" : "evening";
 
         var today = DateTime.Today;
+
+        // ── Auto-promote expired PendingConfirm → Taken ──────────────────────
+        var expired = await _db.DoseLogs
+            .Where(d => d.Status == "PendingConfirm" && d.ConfirmedAt != null && d.ConfirmedAt <= DateTime.Now)
+            .Include(d => d.Medication)
+            .Where(d => d.Medication.UserId == uid)
+            .ToListAsync();
+        foreach (var e in expired)
+            e.Status = "Taken";
+        if (expired.Any()) await _db.SaveChangesAsync();
 
         var meds = await _db.Medications
             .Where(m => m.UserId == uid && m.IsActive
@@ -124,6 +140,9 @@ public class DashboardModel : PageModel
                 TakenAt        = l.TakenAt
             }).ToList();
 
+        SetBanner();
+        AlreadyTakenId = TempData.Peek("AlreadyTakenId")?.ToString() ?? "";
+
         // 7-day adherence — Taken / (Taken + Missed + Skipped), excludes still-Pending
         var weekStart = today.AddDays(-7);
         var weekLogs  = await _db.DoseLogs
@@ -181,10 +200,40 @@ public class DashboardModel : PageModel
 
         if (log != null)
         {
-            log.Status  = "Taken";
-            log.TakenAt = DateTime.Now;
-            if (!string.IsNullOrWhiteSpace(notes)) log.Notes = notes.Trim();
+            if (log.Status == "Taken" || log.Status == "PendingConfirm")
+            {
+                TempData["AlreadyTakenId"] = logId.ToString();
+            }
+            else
+            {
+                log.Status      = "PendingConfirm";
+                log.TakenAt     = DateTime.Now;
+                log.ConfirmedAt = DateTime.Now.AddSeconds(10);
+                if (!string.IsNullOrWhiteSpace(notes)) log.Notes = notes.Trim();
+                await _db.SaveChangesAsync();
+                TempData["UndoDoseId"]   = log.Id.ToString();
+                TempData["UndoDoseName"] = log.Medication.Name;
+            }
+        }
+        return RedirectToPage();
+    }
+
+    public async Task<IActionResult> OnPostUndoAsync(int doseLogId)
+    {
+        var userId = HttpContext.Session.GetString("UserId");
+        if (userId == null) return RedirectToPage("/Login");
+        int uid = int.Parse(userId);
+
+        var log = await _db.DoseLogs.Include(d => d.Medication)
+            .FirstOrDefaultAsync(d => d.Id == doseLogId && d.Medication.UserId == uid);
+
+        if (log != null && log.Status == "PendingConfirm")
+        {
+            log.Status      = "Pending";
+            log.TakenAt     = null;
+            log.ConfirmedAt = null;
             await _db.SaveChangesAsync();
+            TempData["Success"] = $"{log.Medication.Name} has been undone.";
         }
         return RedirectToPage();
     }
@@ -200,5 +249,47 @@ public class DashboardModel : PageModel
 
         if (log != null) { log.Status = "Skipped"; await _db.SaveChangesAsync(); }
         return RedirectToPage();
+    }
+
+    // ── Banner helpers ───────────────────────────────────────────────────────
+    private void SetBanner()
+    {
+        var now     = DateTime.Now;
+        var pending = TodayDoses.Where(d => d.Status == "Pending").ToList();
+
+        if (!pending.Any())
+        {
+            if (TodayDoses.Any(d => d.Status == "Taken")) BannerType = "allgood";
+            return;
+        }
+
+        var next = pending.OrderBy(d => d.ScheduledFor).First();
+        BannerMedName = next.MedicationName;
+        var diff = next.ScheduledFor - now;
+
+        if (diff.TotalSeconds < -60)
+        {
+            BannerType = "overdue";
+            BannerTime = FormatSpan(-diff) + " overdue";
+        }
+        else if (diff.TotalMinutes < 60)
+        {
+            BannerType = "soon";
+            BannerTime = diff.TotalSeconds < 60 ? "right now" : "in " + FormatSpan(diff);
+        }
+        else
+        {
+            BannerType = "upcoming";
+            BannerTime = "in " + FormatSpan(diff);
+        }
+    }
+
+    private static string FormatSpan(TimeSpan ts)
+    {
+        var h = (int)ts.TotalHours;
+        var m = ts.Minutes;
+        if (h == 0) return $"{m} minute{(m == 1 ? "" : "s")}";
+        if (m == 0) return $"{h} hour{(h == 1 ? "" : "s")}";
+        return $"{h} hour{(h == 1 ? "" : "s")} {m} minute{(m == 1 ? "" : "s")}";
     }
 }

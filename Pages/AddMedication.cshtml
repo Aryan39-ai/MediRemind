@@ -10,80 +10,264 @@
 }
 else
 {
-<section class="max-w-2xl mx-auto px-4 py-12">
-    <a href="/Medications" class="text-slate-500 hover:text-primary text-sm">← Back to my medications</a>
-    <h1 class="text-3xl font-extrabold text-ink mt-3 mb-1">Add a Medication</h1>
-    <p class="text-slate-500 text-sm mb-8">Tell us what you take and when. We'll handle the schedule.</p>
+<section class="max-w-xl mx-auto px-4 py-12">
 
-    @if (Model.ErrorMessage != null)
+    <!-- Back link (only visible on step 1) -->
+    @if (Model.CurrentStep == 1)
     {
-        <div class="bg-red-50 border border-red-300 text-red-700 rounded-xl px-4 py-3 mb-6 text-sm">@Model.ErrorMessage</div>
+        <a href="/Medications" class="text-slate-500 hover:text-primary text-sm">← Back to my medications</a>
     }
 
-    <form method="post" class="bg-white rounded-2xl shadow-sm border border-slate-100 p-8 space-y-5" novalidate>
-        @Html.AntiForgeryToken()
+    <!-- ── Step indicator ───────────────────────────────────────────────── -->
+    <div class="flex items-center my-6" role="progressbar" aria-valuenow="@Model.CurrentStep" aria-valuemin="1" aria-valuemax="3" aria-label="Step @Model.CurrentStep of 3">
+        @{
+            var steps = new[] { "What is it?", "When?", "Supply" };
+        }
+        @for (int i = 1; i <= 3; i++)
+        {
+            var done    = i < Model.CurrentStep;
+            var active  = i == Model.CurrentStep;
+            var circleClass = done   ? "bg-green-500 text-white"
+                            : active ? "bg-primary text-white ring-4 ring-primary/20"
+                            :          "bg-slate-100 text-slate-400";
+            var labelClass  = active ? "text-primary font-semibold" : "text-slate-400";
 
-        <div>
-            <label class="block text-sm font-semibold text-slate-700 mb-1">Medication Name *</label>
-            <input asp-for="Input.Name" placeholder="e.g. Atorvastatin, Metformin..." class="inp" />
-            <span asp-validation-for="Input.Name" class="text-red-500 text-xs"></span>
-        </div>
-
-        <div class="grid grid-cols-2 gap-4">
-            <div>
-                <label class="block text-sm font-semibold text-slate-700 mb-1">Dosage *</label>
-                <input asp-for="Input.Dosage" placeholder="e.g. 20mg, 1 tablet" class="inp" />
-                <span asp-validation-for="Input.Dosage" class="text-red-500 text-xs"></span>
+            <div class="flex flex-col items-center gap-1">
+                <div class="w-12 h-12 rounded-full flex items-center justify-center text-lg font-extrabold @circleClass">
+                    @if (done) {
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
+                        </svg>
+                    } else { @i }
+                </div>
+                <span class="text-xs @labelClass whitespace-nowrap">@steps[i - 1]</span>
             </div>
+
+            @if (i < 3)
+            {
+                <div class="flex-1 h-1 mx-2 rounded-full @(i < Model.CurrentStep ? "bg-primary" : "bg-slate-200")"></div>
+            }
+        }
+    </div>
+
+    <!-- ── Error ──────────────────────────────────────────────────────────── -->
+    @if (Model.ErrorMessage != null)
+    {
+        <div role="alert" aria-live="assertive"
+             class="bg-red-50 border border-red-300 text-red-700 rounded-xl px-4 py-3 mb-5 text-sm font-semibold">
+            @Model.ErrorMessage
+        </div>
+    }
+
+    <!-- ══════════════════════════════════════════════════════════════════════
+         STEP 1 — What is the medication?
+         ════════════════════════════════════════════════════════════════════ -->
+    @if (Model.CurrentStep == 1)
+    {
+        <h1 class="text-3xl font-extrabold text-ink mb-1">What is the medication?</h1>
+        <p class="text-slate-500 text-base mb-7">Enter the name and strength your doctor prescribed.</p>
+
+        <form method="post" class="bg-white rounded-2xl shadow-sm border border-slate-100 p-7 space-y-6" novalidate>
+            @Html.AntiForgeryToken()
+
             <div>
-                <label class="block text-sm font-semibold text-slate-700 mb-1">Frequency *</label>
-                <select asp-for="Input.Frequency" class="inp">
-                    <option>Once daily</option>
-                    <option>Twice daily</option>
-                    <option>Three times daily</option>
-                    <option>Four times daily</option>
-                    <option>As needed</option>
-                    <option>Weekly</option>
+                <label for="S_Name" class="block text-base font-semibold text-slate-700 mb-2">Medication Name *</label>
+                <input id="S_Name" name="S_Name" type="text" value="@Model.S_Name"
+                       placeholder="e.g. Metformin, Atorvastatin..."
+                       class="inp text-lg" style="height:3.5rem" autocomplete="off" />
+            </div>
+
+            <div>
+                <label for="S_Dosage" class="block text-base font-semibold text-slate-700 mb-2">Strength / Dosage *</label>
+                <input id="S_Dosage" name="S_Dosage" type="text" value="@Model.S_Dosage"
+                       placeholder="e.g. 500 mg, 1 tablet, 10 mL"
+                       class="inp text-lg" style="height:3.5rem" />
+            </div>
+
+            <div>
+                <label for="S_Instructions" class="block text-base font-semibold text-slate-700 mb-2">
+                    Special Instructions
+                    <span class="text-slate-400 font-normal text-sm">(optional)</span>
+                </label>
+                <textarea id="S_Instructions" name="S_Instructions" rows="3"
+                          placeholder="e.g. Take with food, avoid grapefruit..."
+                          class="inp text-base resize-none">@Model.S_Instructions</textarea>
+            </div>
+
+            <button type="submit" asp-page-handler="Step1"
+                    class="w-full bg-primary text-white font-bold text-lg py-4 rounded-xl hover:bg-primary-dark transition">
+                Next — When do you take it? →
+            </button>
+        </form>
+    }
+
+    <!-- ══════════════════════════════════════════════════════════════════════
+         STEP 2 — When do you take it?
+         ════════════════════════════════════════════════════════════════════ -->
+    @if (Model.CurrentStep == 2)
+    {
+        <h1 class="text-3xl font-extrabold text-ink mb-1">When do you take it?</h1>
+        <p class="text-slate-500 text-base mb-7">Choose how often and the times you take this medication.</p>
+
+        <form method="post" class="bg-white rounded-2xl shadow-sm border border-slate-100 p-7 space-y-6" novalidate>
+            @Html.AntiForgeryToken()
+
+            <!-- Frequency -->
+            <div>
+                <label for="S_Frequency" class="block text-base font-semibold text-slate-700 mb-2">How often?</label>
+                <select id="S_Frequency" name="S_Frequency" class="inp text-lg select-inp"
+                        onchange="updateTimes(this.value)">
+                    @{
+                        var freqs = new[] { "Once daily", "Twice daily", "Three times daily", "As needed" };
+                        var curFreq = Model.S_Frequency ?? "Once daily";
+                    }
+                    @foreach (var f in freqs)
+                    {
+                        if (curFreq == f) { <option value="@f" selected>@f</option> }
+                        else             { <option value="@f">@f</option> }
+                    }
                 </select>
             </div>
-        </div>
 
-        <div>
-            <label class="block text-sm font-semibold text-slate-700 mb-1">Times of Day</label>
-            <input asp-for="Input.TimesOfDay" placeholder="e.g. 08:00, 20:00" class="inp" />
-            <p class="text-xs text-slate-400 mt-1">Separate multiple times with commas. Use 24-hour format (08:00, 14:00, 20:00).</p>
-        </div>
-
-        <div>
-            <label class="block text-sm font-semibold text-slate-700 mb-1">Special Instructions <span class="text-slate-400 font-normal">(optional)</span></label>
-            <textarea asp-for="Input.Instructions" rows="2" placeholder="e.g. Take with food, avoid grapefruit..." class="inp resize-none"></textarea>
-        </div>
-
-        <div class="grid grid-cols-2 gap-4">
-            <div>
-                <label class="block text-sm font-semibold text-slate-700 mb-1">Start Date</label>
-                <input asp-for="Input.StartDate" type="date" class="inp" />
+            <!-- Time inputs (shown/hidden by JS based on frequency) -->
+            <div id="timesSection">
+                <label class="block text-base font-semibold text-slate-700 mb-3">What time(s)?</label>
+                <div class="space-y-3">
+                    <div id="tg1">
+                        <label for="S_Time1" class="text-sm text-slate-500 mb-1 block">First dose</label>
+                        <input type="time" id="S_Time1" name="S_Time1" value="@Model.S_Time1"
+                               class="inp text-lg" style="height:3.5rem" />
+                    </div>
+                    <div id="tg2" class="hidden">
+                        <label for="S_Time2" class="text-sm text-slate-500 mb-1 block">Second dose</label>
+                        <input type="time" id="S_Time2" name="S_Time2" value="@Model.S_Time2"
+                               class="inp text-lg" style="height:3.5rem" />
+                    </div>
+                    <div id="tg3" class="hidden">
+                        <label for="S_Time3" class="text-sm text-slate-500 mb-1 block">Third dose</label>
+                        <input type="time" id="S_Time3" name="S_Time3" value="@Model.S_Time3"
+                               class="inp text-lg" style="height:3.5rem" />
+                    </div>
+                </div>
             </div>
-            <div>
-                <label class="block text-sm font-semibold text-slate-700 mb-1">End Date <span class="text-slate-400 font-normal">(optional)</span></label>
-                <input asp-for="Input.EndDate" type="date" class="inp" />
+
+            <div class="flex gap-3 pt-2">
+                <button type="submit" asp-page-handler="Back" name="toStep" value="1"
+                        class="px-6 py-4 text-slate-600 font-semibold text-base border border-slate-200 rounded-xl hover:border-slate-400 transition">
+                    ← Back
+                </button>
+                <button type="submit" asp-page-handler="Step2"
+                        class="flex-1 bg-primary text-white font-bold text-lg py-4 rounded-xl hover:bg-primary-dark transition">
+                    Next — How many pills? →
+                </button>
             </div>
+        </form>
+    }
+
+    <!-- ══════════════════════════════════════════════════════════════════════
+         STEP 3 — Supply + summary
+         ════════════════════════════════════════════════════════════════════ -->
+    @if (Model.CurrentStep == 3)
+    {
+        <h1 class="text-3xl font-extrabold text-ink mb-1">How many pills do you have?</h1>
+        <p class="text-slate-500 text-base mb-6">
+            Optional — we'll warn you when you're running low (under 14 days' supply).
+        </p>
+
+        <!-- Summary card -->
+        <div class="bg-slate-50 border border-slate-200 rounded-xl p-5 mb-6">
+            <p class="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-3">Summary</p>
+            <dl class="space-y-2 text-sm">
+                <div class="flex gap-3">
+                    <dt class="text-slate-500 w-28 flex-shrink-0">Medication</dt>
+                    <dd class="font-semibold text-ink">@Model.Wizard.Name</dd>
+                </div>
+                <div class="flex gap-3">
+                    <dt class="text-slate-500 w-28 flex-shrink-0">Dosage</dt>
+                    <dd class="font-semibold text-ink">@Model.Wizard.Dosage</dd>
+                </div>
+                <div class="flex gap-3">
+                    <dt class="text-slate-500 w-28 flex-shrink-0">Frequency</dt>
+                    <dd class="font-semibold text-ink">@Model.Wizard.Frequency</dd>
+                </div>
+                @if (!string.IsNullOrEmpty(Model.Wizard.TimesOfDay))
+                {
+                    <div class="flex gap-3">
+                        <dt class="text-slate-500 w-28 flex-shrink-0">Times</dt>
+                        <dd class="font-semibold text-ink">@Model.Wizard.TimesOfDay</dd>
+                    </div>
+                }
+                @if (!string.IsNullOrEmpty(Model.Wizard.Instructions))
+                {
+                    <div class="flex gap-3">
+                        <dt class="text-slate-500 w-28 flex-shrink-0">Instructions</dt>
+                        <dd class="font-semibold text-ink">@Model.Wizard.Instructions</dd>
+                    </div>
+                }
+            </dl>
         </div>
 
-        <div class="grid grid-cols-2 gap-4">
-            <div>
-                <label class="block text-sm font-semibold text-slate-700 mb-1">Current Pill Count <span class="text-slate-400 font-normal">(optional)</span></label>
-                <input asp-for="Input.PillCount" type="number" min="0" placeholder="e.g. 30" class="inp" />
-                <p class="text-xs text-slate-400 mt-1">How many pills you have right now.</p>
-            </div>
-            <div>
-                <label class="block text-sm font-semibold text-slate-700 mb-1">Pills Per Dose <span class="text-slate-400 font-normal">(optional)</span></label>
-                <input asp-for="Input.PillsPerDose" type="number" min="1" placeholder="e.g. 1" class="inp" />
-                <p class="text-xs text-slate-400 mt-1">Used to calculate when to refill.</p>
-            </div>
-        </div>
+        <form method="post" class="bg-white rounded-2xl shadow-sm border border-slate-100 p-7 space-y-6" novalidate>
+            @Html.AntiForgeryToken()
 
-        <button type="submit" class="w-full bg-primary text-white font-bold py-3.5 rounded-xl hover:bg-primary-dark transition">Save Medication</button>
-    </form>
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label for="S_PillCount" class="block text-base font-semibold text-slate-700 mb-2">
+                        Pill Count
+                        <span class="text-slate-400 font-normal text-sm">(optional)</span>
+                    </label>
+                    <input type="number" id="S_PillCount" name="S_PillCount"
+                           value="@Model.S_PillCount" min="0" max="9999" placeholder="e.g. 30"
+                           class="inp text-lg" style="height:3.5rem" />
+                    <p class="text-xs text-slate-400 mt-1.5">How many you have now</p>
+                </div>
+                <div>
+                    <label for="S_PillsPerDose" class="block text-base font-semibold text-slate-700 mb-2">
+                        Per Dose
+                        <span class="text-slate-400 font-normal text-sm">(optional)</span>
+                    </label>
+                    <input type="number" id="S_PillsPerDose" name="S_PillsPerDose"
+                           value="@Model.S_PillsPerDose" min="1" max="99" placeholder="e.g. 1"
+                           class="inp text-lg" style="height:3.5rem" />
+                    <p class="text-xs text-slate-400 mt-1.5">Pills taken each time</p>
+                </div>
+            </div>
+
+            <div class="flex gap-3 pt-2">
+                <button type="submit" asp-page-handler="Back" name="toStep" value="2"
+                        class="px-6 py-4 text-slate-600 font-semibold text-base border border-slate-200 rounded-xl hover:border-slate-400 transition">
+                    ← Back
+                </button>
+                <button type="submit" asp-page-handler="Save"
+                        class="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold text-lg py-4 rounded-xl transition flex items-center justify-center gap-2">
+                    <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
+                    </svg>
+                    Save Medication
+                </button>
+            </div>
+        </form>
+    }
+
 </section>
+
+@if (Model.CurrentStep == 2)
+{
+    <script>
+    function updateTimes(freq) {
+        var show = { 'Once daily': 1, 'Twice daily': 2, 'Three times daily': 3, 'As needed': 0 };
+        var count = show[freq] ?? 1;
+        document.getElementById('timesSection').style.display = count === 0 ? 'none' : '';
+        [1, 2, 3].forEach(function(i) {
+            var g = document.getElementById('tg' + i);
+            if (g) g.classList.toggle('hidden', i > count);
+        });
+    }
+    // Initialise on load so pre-filled frequency shows correct inputs
+    document.addEventListener('DOMContentLoaded', function() {
+        var sel = document.getElementById('S_Frequency');
+        if (sel) updateTimes(sel.value);
+    });
+    </script>
+}
 }

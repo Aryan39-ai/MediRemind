@@ -1,8 +1,42 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using System.ComponentModel.DataAnnotations;
 using MediRemind.Data;
 
 namespace MediRemind.Pages;
+
+// Shared input DTO — also referenced by AddMedication wizard's final save
+public class MedicationInput
+{
+    [Required(ErrorMessage = "Medication name is required.")]
+    [StringLength(100, MinimumLength = 2)]
+    public string Name { get; set; } = "";
+
+    [Required(ErrorMessage = "Dosage is required.")]
+    [StringLength(50)]
+    public string Dosage { get; set; } = "";
+
+    [Required]
+    public string Frequency { get; set; } = "Once daily";
+
+    [StringLength(200)]
+    public string? TimesOfDay { get; set; }
+
+    [StringLength(500)]
+    public string? Instructions { get; set; }
+
+    [DataType(DataType.Date)]
+    public DateTime StartDate { get; set; } = DateTime.Today;
+
+    [DataType(DataType.Date)]
+    public DateTime? EndDate { get; set; }
+
+    [Range(0, 9999)]
+    public int? PillCount { get; set; }
+
+    [Range(1, 99)]
+    public int? PillsPerDose { get; set; }
+}
 
 public class EditMedicationModel : PageModel
 {

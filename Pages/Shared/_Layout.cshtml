@@ -21,17 +21,75 @@
         }
     </script>
     @inject Microsoft.Extensions.Configuration.IConfiguration _cfg
-    <!-- Apply dark mode before render to avoid flash -->
-    <script>if (localStorage.getItem('theme') === 'dark') document.getElementById('htmlRoot').classList.add('dark');</script>
+    <!-- Apply dark mode, font size, and high contrast before render (avoids flash) -->
+    <script>
+    (function(){
+        var h=document.getElementById('htmlRoot');
+        if(localStorage.getItem('theme')==='dark') h.classList.add('dark');
+        var m=document.cookie.match(/(?:^|; )fontSize=([^;]+)/);
+        if(m&&m[1]!=='normal') h.dataset.fs=m[1];
+        if(/(?:^|; )highContrast=1/.test(document.cookie)) h.classList.add('high-contrast');
+    })();
+    </script>
+    <style>
+        /* Global visible focus rings */
+        :focus-visible { outline: 2px solid #0284c7; outline-offset: 2px; }
+
+        /* Text size: changes root rem so ALL Tailwind size utilities scale */
+        html[data-fs="large"] { font-size: 112.5%; }
+        html[data-fs="xl"]    { font-size: 125%; }
+
+        /* High Contrast Mode overrides */
+        html.high-contrast body { background:#ffffff !important; color:#000000 !important; }
+        html.high-contrast nav,
+        html.high-contrast footer { background:#ffffff !important; border-color:#000000 !important; }
+        html.high-contrast div,
+        html.high-contrast section { background-color:#ffffff !important; }
+        html.high-contrast a { color:#00008B !important; text-decoration:underline !important; }
+        html.high-contrast span, html.high-contrast p,
+        html.high-contrast h1, html.high-contrast h2, html.high-contrast h3,
+        html.high-contrast label, html.high-contrast td, html.high-contrast th,
+        html.high-contrast li { color:#000000 !important; }
+        html.high-contrast button,
+        html.high-contrast [type="submit"],
+        html.high-contrast [type="button"] {
+            background:#000000 !important; color:#ffffff !important;
+            border:3px solid #000000 !important;
+        }
+        html.high-contrast input:not([type="hidden"]),
+        html.high-contrast select,
+        html.high-contrast textarea,
+        html.high-contrast .inp {
+            border:2px solid #000000 !important;
+            background:#ffffff !important;
+            color:#000000 !important;
+        }
+        html.high-contrast .shadow-sm,
+        html.high-contrast .shadow-md { box-shadow:none !important; border:1px solid #000000 !important; }
+        /* HC toggle button itself: white border so it's distinguishable in HC mode */
+        html.high-contrast .hc-btn { border:3px solid #ffffff !important; }
+
+        /* ── Global minimum tap targets ──────────────────────── */
+        button, [type="submit"], [type="button"] { min-height: 2.75rem; }
+        select, input[type="date"] { min-height: 3.5rem; font-size: 1.125rem; }
+        /* Mobile nav links: large touch areas */
+        #mobileMenu a {
+            display: flex; align-items: center;
+            min-height: 2.75rem; padding: 0.5rem 0;
+        }
+    </style>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="~/css/site.css" />
     <link rel="manifest" href="/manifest.json" />
     <meta name="theme-color" content="#0284c7" />
     <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+    @await RenderSectionAsync("Head", required: false)
 </head>
 <body class="bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 font-sans min-h-screen flex flex-col transition-colors"
       data-logged-in="@(Context.Session.GetString("UserId") != null ? "true" : "")"
       data-vapid-key="@_cfg["Vapid:PublicKey"]">
+
+    <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:bg-white focus:text-primary focus:px-4 focus:py-2 focus:rounded-lg focus:font-bold focus:border-2 focus:border-primary focus:shadow-md">Skip to main content</a>
 
     <!-- NAVBAR -->
     <nav class="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 sticky top-0 z-50 shadow-sm">
@@ -46,24 +104,36 @@
                     <span class="text-xl font-extrabold tracking-tight"><span class="text-primary">Medi</span><span class="text-ink dark:text-slate-100">Remind</span></span>
                 </a>
 
-                <div class="hidden md:flex items-center gap-6 text-sm font-semibold text-slate-600 dark:text-slate-300">
-                    <a href="/" class="hover:text-primary transition">Home</a>
+                <div class="hidden md:flex items-center gap-1 text-sm font-semibold text-slate-600 dark:text-slate-300">
+                    <a href="/" class="px-3 py-3 rounded-lg hover:text-primary hover:bg-slate-50 dark:hover:bg-slate-700 transition">Home</a>
                     @if (Context.Session.GetString("UserId") != null)
                     {
-                        <a href="/Dashboard" class="hover:text-primary transition">Today</a>
-                        <a href="/Medications" class="hover:text-primary transition">Medications</a>
-                        <a href="/History" class="hover:text-primary transition">History</a>
-                        <a href="/Caregivers" class="hover:text-primary transition">Caregivers</a>
-                        <a href="/EditProfile" class="hover:text-primary transition">Profile</a>
-                        <a href="/Logout" onclick="return confirm('Are you sure you want to log out?')" class="text-slate-400 hover:text-slate-600 transition text-xs">Logout</a>
+                        <a href="/Dashboard" class="px-3 py-3 rounded-lg hover:text-primary hover:bg-slate-50 dark:hover:bg-slate-700 transition">Today</a>
+                        <a href="/Medications" class="px-3 py-3 rounded-lg hover:text-primary hover:bg-slate-50 dark:hover:bg-slate-700 transition">Medications</a>
+                        <a href="/History" class="px-3 py-3 rounded-lg hover:text-primary hover:bg-slate-50 dark:hover:bg-slate-700 transition">History</a>
+                        <a href="/Caregivers" class="px-3 py-3 rounded-lg hover:text-primary hover:bg-slate-50 dark:hover:bg-slate-700 transition">Caregivers</a>
+                        <a href="/EditProfile" class="px-3 py-3 rounded-lg hover:text-primary hover:bg-slate-50 dark:hover:bg-slate-700 transition">Profile</a>
+                        <a href="/Logout" onclick="return confirm('Are you sure you want to log out?')" class="px-3 py-3 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700 transition text-xs">Logout</a>
                     }
                     else
                     {
-                        <a href="/About" class="hover:text-primary transition">About</a>
-                        <a href="/Contact" class="hover:text-primary transition">Contact</a>
-                        <a href="/Login" class="hover:text-primary transition">Login</a>
-                        <a href="/Register" class="bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary-dark transition font-bold text-xs">Get Started</a>
+                        <a href="/About" class="px-3 py-3 rounded-lg hover:text-primary hover:bg-slate-50 dark:hover:bg-slate-700 transition">About</a>
+                        <a href="/Contact" class="px-3 py-3 rounded-lg hover:text-primary hover:bg-slate-50 dark:hover:bg-slate-700 transition">Contact</a>
+                        <a href="/Login" class="px-3 py-3 rounded-lg hover:text-primary hover:bg-slate-50 dark:hover:bg-slate-700 transition">Login</a>
+                        <a href="/Register" class="bg-primary text-white px-4 py-2.5 rounded-lg hover:bg-primary-dark transition font-bold text-xs">Get Started</a>
                     }
+                    <!-- Text size controls (A / A+ / A++) -->
+                    <div class="flex items-center gap-1 border-l border-slate-200 dark:border-slate-700 pl-3 ml-1" role="group" aria-label="Text size">
+                        <button class="fs-btn w-11 h-11 flex items-center justify-center rounded-lg text-sm font-bold border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-primary hover:text-primary transition"
+                                data-size="normal" onclick="setFontSize('normal')" aria-label="Normal text size" aria-pressed="false">A</button>
+                        <button class="fs-btn w-11 h-11 flex items-center justify-center rounded-lg font-bold border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-primary hover:text-primary transition"
+                                style="font-size:1.05rem" data-size="large" onclick="setFontSize('large')" aria-label="Large text size" aria-pressed="false">A+</button>
+                        <button class="fs-btn w-11 h-11 flex items-center justify-center rounded-lg text-base font-bold border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-primary hover:text-primary transition"
+                                data-size="xl" onclick="setFontSize('xl')" aria-label="Extra large text size" aria-pressed="false">A++</button>
+                    </div>
+                    <!-- High contrast toggle -->
+                    <button class="hc-btn w-11 h-11 flex items-center justify-center rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-primary hover:text-primary transition text-xs font-bold"
+                            onclick="toggleHighContrast()" aria-label="Toggle high contrast mode" aria-pressed="false" title="High contrast">HC</button>
                     <!-- Dark mode toggle -->
                     <button id="darkToggle" aria-label="Toggle dark mode"
                             class="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-primary hover:bg-slate-100 dark:hover:bg-slate-700 transition">
@@ -102,11 +172,37 @@
                     <a href="/Login" class="hover:text-primary transition">Login</a>
                     <a href="/Register" class="text-primary font-bold">Get Started</a>
                 }
+                <!-- Accessibility controls (mobile) -->
+                <div class="border-t border-slate-200 dark:border-slate-700 pt-3 mt-1">
+                    <p class="text-xs text-slate-400 uppercase tracking-wide mb-2">Accessibility</p>
+                    <div class="flex items-center gap-2 flex-wrap" role="group" aria-label="Text size and contrast">
+                        <button class="fs-btn w-11 h-11 flex items-center justify-center rounded-lg text-sm font-bold border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-primary hover:text-primary transition"
+                                data-size="normal" onclick="setFontSize('normal')" aria-label="Normal text size" aria-pressed="false">A</button>
+                        <button class="fs-btn w-11 h-11 flex items-center justify-center rounded-lg font-bold border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-primary hover:text-primary transition"
+                                style="font-size:1.05rem" data-size="large" onclick="setFontSize('large')" aria-label="Large text size" aria-pressed="false">A+</button>
+                        <button class="fs-btn w-11 h-11 flex items-center justify-center rounded-lg text-base font-bold border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-primary hover:text-primary transition"
+                                data-size="xl" onclick="setFontSize('xl')" aria-label="Extra large text size" aria-pressed="false">A++</button>
+                        <button class="hc-btn h-11 px-3 flex items-center justify-center rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-primary hover:text-primary transition text-xs font-bold"
+                                onclick="toggleHighContrast()" aria-label="Toggle high contrast mode" aria-pressed="false">High Contrast</button>
+                    </div>
+                </div>
             </div>
         </div>
     </nav>
 
-    <main class="flex-1">@RenderBody()</main>
+    @if (TempData["Success"] is string successMsg)
+    {
+        <div role="alert" aria-live="polite" class="max-w-4xl mx-auto w-full px-4 pt-4 print:hidden">
+            <div class="bg-green-50 border border-green-300 text-green-700 rounded-xl px-4 py-3 text-sm font-semibold">@successMsg</div>
+        </div>
+    }
+    @if (TempData["Error"] is string errorMsg)
+    {
+        <div role="alert" aria-live="assertive" class="max-w-4xl mx-auto w-full px-4 pt-4 print:hidden">
+            <div class="bg-red-50 border border-red-300 text-red-700 rounded-xl px-4 py-3 text-sm font-semibold">@errorMsg</div>
+        </div>
+    }
+    <main id="main-content" class="flex-1 pb-20 md:pb-0">@RenderBody()</main>
 
     <footer class="bg-ink text-slate-300 py-10 mt-16 print:hidden">
         <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-4 text-sm">
@@ -118,6 +214,52 @@
             </div>
         </div>
     </footer>
+
+    @* ── Mobile bottom tab bar (logged-in users only) ─────────────────────────── *@
+    @if (Context.Session.GetString("UserId") != null)
+    {
+        var currentPage = ViewContext.RouteData.Values["page"]?.ToString() ?? "";
+        var tabs = new[] {
+            ("Dashboard",    "/Dashboard",    "Home"),
+            ("Medications",  "/Medications",  "Meds"),
+            ("History",      "/History",      "History"),
+            ("EditProfile",  "/EditProfile",  "Profile")
+        };
+        <nav class="bottom-tab-bar md:hidden print:hidden" aria-label="Mobile navigation">
+            @foreach (var (pageName, href, label) in tabs)
+            {
+                var isActive = currentPage.EndsWith(pageName, StringComparison.OrdinalIgnoreCase);
+                var tabClass = isActive ? "bottom-tab active-tab" : "bottom-tab";
+                <a href="@href" class="@tabClass" aria-current="@(isActive ? "page" : "false")">
+                    @if (pageName == "Dashboard")
+                    {
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1h-2z"/>
+                        </svg>
+                    }
+                    else if (pageName == "Medications")
+                    {
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/>
+                        </svg>
+                    }
+                    else if (pageName == "History")
+                    {
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                    }
+                    else
+                    {
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                        </svg>
+                    }
+                    <span>@label</span>
+                </a>
+            }
+        </nav>
+    }
 
     <script src="~/js/site.js"></script>
     <script>
@@ -159,11 +301,63 @@
         }
     </script>
     <script>
-        // Dark mode toggle
-        document.getElementById('darkToggle')?.addEventListener('click', () => {
-            const html = document.getElementById('htmlRoot');
+        // ── Shared helper ──────────────────────────────────────
+        function setCookie(name, val, days) {
+            var exp = new Date(Date.now() + days * 864e5).toUTCString();
+            document.cookie = name + '=' + val + '; expires=' + exp + '; path=/; SameSite=Lax';
+        }
+
+        // ── Font size ──────────────────────────────────────────
+        function setFontSize(size) {
+            var h = document.getElementById('htmlRoot');
+            delete h.dataset.fs;
+            if (size !== 'normal') h.dataset.fs = size;
+            setCookie('fontSize', size, 365);
+            updateFsState();
+        }
+        function updateFsState() {
+            var current = (document.getElementById('htmlRoot').dataset.fs) || 'normal';
+            document.querySelectorAll('.fs-btn').forEach(function(btn) {
+                var active = btn.dataset.size === current;
+                btn.setAttribute('aria-pressed', String(active));
+                if (active) {
+                    btn.classList.add('ring-2', 'ring-primary', 'text-primary', 'border-primary', 'bg-sky-50');
+                } else {
+                    btn.classList.remove('ring-2', 'ring-primary', 'text-primary', 'border-primary', 'bg-sky-50');
+                }
+            });
+        }
+
+        // ── High contrast ─────────────────────────────────────
+        function toggleHighContrast() {
+            var h = document.getElementById('htmlRoot');
+            var on = h.classList.toggle('high-contrast');
+            setCookie('highContrast', on ? '1' : '0', 365);
+            document.querySelectorAll('.hc-btn').forEach(function(btn) {
+                btn.setAttribute('aria-pressed', String(on));
+                if (on) {
+                    btn.classList.add('ring-2', 'ring-primary', 'text-primary', 'border-primary', 'bg-sky-50');
+                } else {
+                    btn.classList.remove('ring-2', 'ring-primary', 'text-primary', 'border-primary', 'bg-sky-50');
+                }
+            });
+        }
+
+        // ── Dark mode ─────────────────────────────────────────
+        document.getElementById('darkToggle')?.addEventListener('click', function() {
+            var html = document.getElementById('htmlRoot');
             html.classList.toggle('dark');
             localStorage.setItem('theme', html.classList.contains('dark') ? 'dark' : 'light');
+        });
+
+        // ── Initialise button active states on load ───────────
+        document.addEventListener('DOMContentLoaded', function() {
+            updateFsState();
+            var hcOn = document.getElementById('htmlRoot').classList.contains('high-contrast');
+            document.querySelectorAll('.hc-btn').forEach(function(btn) {
+                btn.setAttribute('aria-pressed', String(hcOn));
+                if (hcOn) btn.classList.add('ring-2', 'ring-primary', 'text-primary', 'border-primary', 'bg-sky-50');
+            });
         });
     </script>
     @await RenderSectionAsync("Scripts", required: false)

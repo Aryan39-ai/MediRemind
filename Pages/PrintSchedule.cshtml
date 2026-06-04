@@ -1,0 +1,123 @@
+@page
+@model MediRemind.Pages.PrintScheduleModel
+@{ ViewData["Title"] = "Print Medication Schedule"; }
+
+@if (!Model.IsLoggedIn)
+{
+    <div class="min-h-screen flex items-center justify-center px-4">
+        <p class="text-slate-500">Please <a href="/Login" class="text-primary font-bold">log in</a> first.</p>
+    </div>
+}
+else
+{
+<section class="max-w-4xl mx-auto px-4 py-10">
+
+    <!-- Print button (hidden when printing) -->
+    <div class="flex items-center justify-between mb-8 print-hide">
+        <a href="/Medications" class="text-slate-500 hover:text-primary text-sm font-medium">← Back to medications</a>
+        <button onclick="window.print()"
+                class="bg-primary text-white font-bold px-6 py-3 rounded-xl hover:bg-primary-dark transition text-sm flex items-center gap-2">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
+            </svg>
+            Print / Save as PDF
+        </button>
+    </div>
+
+    <!-- Header -->
+    <div class="mb-6">
+        <h1 class="text-2xl font-extrabold text-ink">Medication Schedule</h1>
+        <div class="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 mt-1 text-sm text-slate-500">
+            <p><strong class="text-ink">Patient:</strong> @Model.UserName</p>
+            <p><strong class="text-ink">Printed:</strong> @Model.PrintDate</p>
+        </div>
+    </div>
+
+    @if (Model.Medications.Any())
+    {
+        <!-- Medication table -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+            <table class="print-table w-full text-sm text-left">
+                <thead>
+                    <tr class="bg-slate-50 border-b border-slate-200">
+                        <th class="px-4 py-3 font-bold text-ink text-xs uppercase tracking-wider">Medication</th>
+                        <th class="px-4 py-3 font-bold text-ink text-xs uppercase tracking-wider">Dosage</th>
+                        <th class="px-4 py-3 font-bold text-ink text-xs uppercase tracking-wider">Frequency</th>
+                        <th class="px-4 py-3 font-bold text-ink text-xs uppercase tracking-wider">Time(s)</th>
+                        <th class="px-4 py-3 font-bold text-ink text-xs uppercase tracking-wider">Instructions</th>
+                        <th class="px-4 py-3 font-bold text-ink text-xs uppercase tracking-wider text-center">Pills Left</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    @foreach (var med in Model.Medications)
+                    {
+                        <tr class="hover:bg-slate-50 transition">
+                            <td class="px-4 py-3 font-semibold text-ink">@med.Name</td>
+                            <td class="px-4 py-3 text-slate-600">@med.Dosage</td>
+                            <td class="px-4 py-3 text-slate-600">@med.Frequency</td>
+                            <td class="px-4 py-3 text-slate-600">
+                                @if (!string.IsNullOrEmpty(med.TimesOfDay))
+                                {
+                                    @med.TimesOfDay
+                                }
+                                else
+                                {
+                                    <span class="text-slate-400 italic">Not set</span>
+                                }
+                            </td>
+                            <td class="px-4 py-3 text-slate-600">
+                                @if (!string.IsNullOrEmpty(med.Instructions))
+                                {
+                                    @med.Instructions
+                                }
+                                else
+                                {
+                                    <span class="text-slate-400">—</span>
+                                }
+                            </td>
+                            <td class="px-4 py-3 text-center">
+                                @if (med.PillCount.HasValue)
+                                {
+                                    var isLow = med.PillCount <= 14;
+                                    <span class="@(isLow ? "text-red-600 font-bold" : "text-slate-600")">@med.PillCount</span>
+                                }
+                                else
+                                {
+                                    <span class="text-slate-400">—</span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Total count -->
+        <p class="text-sm text-slate-500 mt-4">@Model.Medications.Count active medication@(Model.Medications.Count == 1 ? "" : "s") listed.</p>
+    }
+    else
+    {
+        <div class="bg-white rounded-2xl border border-slate-100 p-12 text-center">
+            <p class="text-slate-500">No active medications to display.</p>
+            <a href="/AddMedication" class="text-primary font-bold hover:underline mt-2 inline-block">Add a medication</a>
+        </div>
+    }
+
+    <!-- Footer disclaimer -->
+    <div class="mt-8 pt-6 border-t border-slate-200 text-center">
+        <p class="text-xs text-slate-400">
+            Printed from <strong>MediRemind</strong> on @DateTime.Now.ToString("dd MMMM yyyy").
+            Please verify with your doctor.
+        </p>
+    </div>
+</section>
+
+<!-- Auto-trigger print on load -->
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // Small delay to let the page render fully
+        setTimeout(function () { window.print(); }, 400);
+    });
+</script>
+}

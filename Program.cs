@@ -23,6 +23,7 @@ using (var scope = app.Services.CreateScope())
     db.Database.EnsureCreated();
     try { db.Database.ExecuteSqlRaw("ALTER TABLE Medications ADD COLUMN PillCount INTEGER NULL"); }    catch { }
     try { db.Database.ExecuteSqlRaw("ALTER TABLE Medications ADD COLUMN PillsPerDose INTEGER NULL"); } catch { }
+    try { db.Database.ExecuteSqlRaw("ALTER TABLE DoseLogs ADD COLUMN ConfirmedAt TEXT NULL"); } catch { }
     try { db.Database.ExecuteSqlRaw(@"
         CREATE TABLE IF NOT EXISTS PushSubscriptions (
             Id INTEGER PRIMARY KEY AUTOINCREMENT,

@@ -44,6 +44,7 @@ public class DoseLog
     public DateTime? TakenAt { get; set; }
     public string Status { get; set; } = "Pending";   // Pending, Taken, Missed, Skipped
     public string Notes { get; set; } = "";
+    public DateTime? ConfirmedAt { get; set; }
 }
 
 public class Caregiver

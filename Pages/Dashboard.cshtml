@@ -2,6 +2,10 @@
 @model MediRemind.Pages.DashboardModel
 @{ ViewData["Title"] = "Today's Doses"; }
 
+@section Head {
+    <meta http-equiv="refresh" content="300" />
+}
+
 @if (!Model.IsLoggedIn)
 {
     <div class="min-h-screen flex items-center justify-center px-4">
@@ -10,6 +14,35 @@
 }
 else
 {
+
+@* ── Undo toast (10-second window) ── *@
+@if (TempData["UndoDoseName"] is string undoMedName && TempData["UndoDoseId"] is string undoDoseId)
+{
+    <div id="undoToast" class="w-full bg-slate-800 text-white print:hidden" role="alert" aria-live="assertive"
+         style="padding: 1rem 1rem 0;">
+        <div class="max-w-4xl mx-auto flex flex-col sm:flex-row items-start sm:items-center gap-3 pb-3">
+            <div class="flex-1 min-w-0">
+                <p class="text-lg font-bold leading-snug">Marked <span class="text-green-400">@undoMedName</span> as taken.</p>
+                <p class="text-sm text-slate-300 mt-0.5">Tap UNDO within 10 seconds to revert.</p>
+            </div>
+            <form method="post" asp-page-handler="Undo" class="flex-shrink-0 w-full sm:w-auto">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="doseLogId" value="@undoDoseId" />
+                <button type="submit"
+                        class="w-full sm:w-auto bg-red-500 hover:bg-red-600 text-white font-extrabold text-lg px-8 rounded-xl transition"
+                        style="min-height:56px;"
+                        aria-label="Undo marking @undoMedName as taken">
+                    UNDO
+                </button>
+            </form>
+        </div>
+        <!-- CSS-only countdown bar -->
+        <div class="w-full bg-slate-700 rounded-full overflow-hidden" style="height:5px;">
+            <div id="undoCountdownBar" class="h-full bg-green-400 undo-countdown-bar"></div>
+        </div>
+    </div>
+}
+
 <section class="max-w-4xl mx-auto px-4 py-12">
 
     <!-- Low-supply banner -->
@@ -81,6 +114,56 @@ else
         <a href="/AddMedication" class="inline-block bg-primary text-white font-bold px-6 py-3 rounded-xl hover:bg-primary-dark transition text-sm">+ Add Medication</a>
     </div>
 
+    <!-- ── Next dose countdown banner ─────────────────────────────────────── -->
+    @if (Model.BannerType == "overdue")
+    {
+        <div class="bg-red-500 text-white rounded-2xl px-6 py-5 mb-8 flex items-center gap-5" role="status" aria-live="polite">
+            <svg class="w-10 h-10 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <div>
+                <p class="text-2xl font-extrabold leading-tight">Take @Model.BannerMedName NOW</p>
+                <p class="text-red-100 text-sm mt-1">@Model.BannerTime — scroll down and tap "I took this"</p>
+            </div>
+        </div>
+    }
+    else if (Model.BannerType == "soon")
+    {
+        <div class="bg-amber-400 text-amber-950 rounded-2xl px-6 py-5 mb-8 flex items-center gap-5" role="status" aria-live="polite">
+            <svg class="w-10 h-10 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <div>
+                <p class="text-2xl font-extrabold leading-tight">Time to take @Model.BannerMedName @Model.BannerTime!</p>
+                <p class="text-amber-800 text-sm mt-1">Coming up soon</p>
+            </div>
+        </div>
+    }
+    else if (Model.BannerType == "upcoming")
+    {
+        <div class="bg-sky-50 border border-sky-200 text-sky-900 rounded-2xl px-6 py-5 mb-8 flex items-center gap-5" role="status">
+            <svg class="w-10 h-10 text-primary flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <div>
+                <p class="text-2xl font-extrabold leading-tight">Next dose @Model.BannerTime</p>
+                <p class="text-sky-700 text-sm mt-1">@Model.BannerMedName</p>
+            </div>
+        </div>
+    }
+    else if (Model.BannerType == "allgood")
+    {
+        <div class="bg-green-50 border border-green-200 text-green-900 rounded-2xl px-6 py-5 mb-8 flex items-center gap-5" role="status">
+            <svg class="w-10 h-10 text-green-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <div>
+                <p class="text-2xl font-extrabold leading-tight">All doses taken for today!</p>
+                <p class="text-green-700 text-sm mt-1">Great job keeping up with your medications.</p>
+            </div>
+        </div>
+    }
+
     <!-- Stats -->
     <div class="grid grid-cols-3 gap-3 sm:gap-4 mb-8">
         <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 sm:p-5">
@@ -120,79 +203,109 @@ else
             <div class="divide-y divide-slate-100">
                 @foreach (var d in Model.TodayDoses)
                 {
-                    var rowBg = (d.IsPast && d.Status == "Pending") ? "bg-red-50" : "";
-                    <div class="px-6 py-4 flex items-center gap-4 hover:bg-slate-50 transition @rowBg">
-                        <!-- Status indicator -->
-                        <div class="flex-shrink-0">
-                            @if (d.Status == "Taken")
-                            {
-                                <div class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center text-green-600">
-                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
-                                </div>
-                            }
-                            else if (d.Status == "Skipped")
-                            {
-                                <div class="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-400">
-                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/></svg>
-                                </div>
-                            }
-                            else if (d.IsPast)
-                            {
-                                <div class="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center text-red-500">
-                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                                </div>
-                            }
-                            else
-                            {
-                                <div class="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center text-amber-600">
-                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                                </div>
-                            }
+                    var overdueCard = (d.IsPast && d.Status == "Pending");
+                    var cardBg      = overdueCard ? "bg-red-50" : "bg-white";
+                    var shakeCard = Model.AlreadyTakenId == d.LogId.ToString();
+                    <div class="relative overflow-hidden border-b border-slate-100 last:border-b-0 @(shakeCard ? "shake-card" : "")"
+                         data-dose-id="@d.LogId" data-status="@d.Status">
+                        <!-- Swipe reveal background -->
+                        <div class="swipe-bg absolute inset-0 bg-green-500 flex items-center gap-3 pl-8 pointer-events-none" style="opacity:0" aria-hidden="true">
+                            <svg class="w-6 h-6 text-white flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
+                            </svg>
+                            <span class="text-white font-bold text-sm">Marked as Taken</span>
                         </div>
 
-                        <!-- Details -->
-                        <div class="flex-1 min-w-0">
-                            <p class="font-bold text-ink truncate">@d.MedicationName <span class="text-slate-400 font-normal">· @d.Dosage</span></p>
-                            <p class="text-sm text-slate-500">@d.ScheduledFor.ToString("HH:mm")
-                                @if (!string.IsNullOrEmpty(d.Instructions))
-                                {
-                                    <span class="hidden sm:inline">· @d.Instructions</span>
-                                }
-                            </p>
-                        </div>
-
-                        <!-- Action -->
-                        <div class="flex-shrink-0 flex items-center gap-2">
-                            @if (d.Status == "Taken")
-                            {
-                                <span class="text-xs text-green-600 font-semibold">Taken @d.TakenAt?.ToString("HH:mm")</span>
-                            }
-                            else if (d.Status == "Skipped")
-                            {
-                                <span class="text-xs text-slate-400 font-semibold">Skipped</span>
-                            }
-                            else
-                            {
-                                <!-- Mark Taken form with optional notes -->
-                                <form method="post" asp-page-handler="MarkTaken" class="inline flex items-center gap-2">
-                                    @Html.AntiForgeryToken()
-                                    <input type="hidden" name="logId" value="@d.LogId" />
-                                    <input type="text" name="notes" placeholder="Note (optional)"
-                                           class="hidden sm:block text-xs border border-slate-200 rounded-lg px-2 py-1.5 text-slate-600 w-32 focus:outline-none focus:border-primary" />
-                                    <button type="submit" class="bg-primary text-white text-xs font-bold px-4 py-2 rounded-lg hover:bg-primary-dark transition whitespace-nowrap">
-                                        Mark Taken
-                                    </button>
-                                </form>
-                                <!-- Skip form -->
-                                <form method="post" asp-page-handler="Skip" class="inline">
-                                    @Html.AntiForgeryToken()
-                                    <input type="hidden" name="logId" value="@d.LogId" />
-                                    <button type="submit" class="text-xs text-slate-400 hover:text-slate-600 border border-slate-200 px-3 py-2 rounded-lg transition" title="Skip this dose">
-                                        Skip
-                                    </button>
-                                </form>
-                            }
-                        </div>
+                        @if (d.Status == "Taken" || d.Status == "PendingConfirm" || d.Status == "Skipped")
+                        {
+                            <!-- Completed dose — compact horizontal row -->
+                            <div class="swipe-content px-6 py-4 flex items-center gap-4 hover:bg-slate-50 transition bg-white relative z-10">
+                                <div class="flex-shrink-0">
+                                    @if (d.Status == "Taken" || d.Status == "PendingConfirm")
+                                    {
+                                        <div class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center text-green-600">
+                                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <div class="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-400">
+                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/></svg>
+                                        </div>
+                                    }
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <p class="font-bold text-ink truncate">@d.MedicationName <span class="text-slate-400 font-normal">· @d.Dosage</span></p>
+                                    <p class="text-sm text-slate-500">@d.ScheduledFor.ToString("HH:mm")</p>
+                                </div>
+                                <div class="flex-shrink-0">
+                                    @if (d.Status == "Taken" || d.Status == "PendingConfirm")
+                                    {
+                                        <span class="text-xs text-green-600 font-semibold">Taken @d.TakenAt?.ToString("HH:mm")</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-xs text-slate-400 font-semibold">Skipped</span>
+                                    }
+                                </div>
+                            </div>
+                        }
+                        else
+                        {
+                            <!-- Pending dose — card layout with full-width action button -->
+                            <div class="swipe-content @cardBg relative z-10">
+                                <div class="px-6 pt-4 pb-3 flex items-center gap-4">
+                                    <div class="flex-shrink-0">
+                                        @if (overdueCard)
+                                        {
+                                            <div class="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center text-red-500">
+                                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            <div class="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center text-amber-600">
+                                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                            </div>
+                                        }
+                                    </div>
+                                    <div class="flex-1 min-w-0">
+                                        <p class="font-bold text-ink truncate">@d.MedicationName <span class="text-slate-400 font-normal">· @d.Dosage</span></p>
+                                        <p class="text-sm text-slate-500">@d.ScheduledFor.ToString("HH:mm")
+                                            @if (!string.IsNullOrEmpty(d.Instructions))
+                                            {
+                                                <span class="hidden sm:inline">· @d.Instructions</span>
+                                            }
+                                        </p>
+                                    </div>
+                                </div>
+                                <div class="px-4 pb-4 flex gap-2">
+                                    <form method="post" asp-page-handler="MarkTaken" class="flex-1">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="logId" value="@d.LogId" />
+                                        <input type="text" name="notes" placeholder="Optional note (visible on desktop)"
+                                               class="hidden sm:block w-full text-xs border border-slate-200 rounded-lg px-3 py-2 text-slate-600 mb-2 focus:outline-none focus:border-primary" />
+                                        <button type="submit"
+                                                class="w-full h-16 bg-green-600 hover:bg-green-700 text-white font-bold text-base rounded-xl transition flex items-center justify-center gap-2 shadow-sm"
+                                                aria-label="Mark @d.MedicationName as taken">
+                                            <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
+                                            </svg>
+                                            I took this
+                                        </button>
+                                    </form>
+                                    <form method="post" asp-page-handler="Skip">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="logId" value="@d.LogId" />
+                                        <button type="submit"
+                                                class="w-16 h-16 sm:w-20 text-xs sm:text-sm font-medium text-slate-500 border border-slate-200 rounded-xl hover:border-slate-400 hover:text-slate-700 transition flex-shrink-0"
+                                                aria-label="Skip dose of @d.MedicationName">
+                                            Skip
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        }
                     </div>
                 }
             </div>
@@ -215,4 +328,172 @@ else
         }
     </div>
 </section>
+
+<style>
+/* ── Swipe hint ── */
+@@keyframes swipeHint {
+    0%, 100% { transform: translateX(0); opacity: 0.5; }
+    50%       { transform: translateX(10px); opacity: 1; }
+}
+.swipe-hint-anim { animation: swipeHint 1.6s ease-in-out infinite; }
+
+/* ── Dose confirmation fade-out (kept for backwards compat) ── */
+@@keyframes doseConfirmFade {
+    0%,  65% { opacity: 1; }
+    100%     { opacity: 0; }
+}
+.dose-confirm-anim { animation: doseConfirmFade 2s ease-out forwards; }
+
+/* ── Undo countdown bar ── */
+@@keyframes undoCountdown {
+    0%   { width: 100%; }
+    100% { width: 0%; }
+}
+.undo-countdown-bar {
+    animation: undoCountdown 10s linear forwards;
+}
+
+/* ── Already-taken shake ── */
+@@keyframes shake {
+    0%,  100% { transform: translateX(0); }
+    20%       { transform: translateX(-8px); }
+    40%       { transform: translateX(8px); }
+    60%       { transform: translateX(-5px); }
+    80%       { transform: translateX(4px); }
+}
+.shake-card { animation: shake 0.55s ease-out; }
+</style>
+<script>
+// ── Undo toast: auto-dismiss when countdown bar animation ends ───────────────
+(function () {
+    var bar = document.getElementById('undoCountdownBar');
+    var toast = document.getElementById('undoToast');
+    if (!bar || !toast) return;
+
+    // Audio ding
+    try {
+        var Ctx = window.AudioContext || window.webkitAudioContext;
+        if (Ctx) {
+            var ac = new Ctx();
+            function ding(freq, when) {
+                var osc = ac.createOscillator(), g = ac.createGain();
+                osc.connect(g); g.connect(ac.destination);
+                osc.type = 'sine'; osc.frequency.value = freq;
+                g.gain.setValueAtTime(0.22, when);
+                g.gain.exponentialRampToValueAtTime(0.001, when + 0.32);
+                osc.start(when); osc.stop(when + 0.35);
+            }
+            var t = ac.currentTime;
+            ding(523, t);
+            ding(659, t + 0.19);
+        }
+    } catch (e) { /* silent */ }
+
+    bar.addEventListener('animationend', function () {
+        toast.style.transition = 'max-height 0.3s ease, opacity 0.3s ease, padding 0.3s ease';
+        toast.style.maxHeight  = '0';
+        toast.style.opacity    = '0';
+        toast.style.padding    = '0';
+        toast.style.overflow   = 'hidden';
+        setTimeout(function () { toast.remove(); }, 350);
+    });
+}());
+
+// ── Swipe-to-mark-taken ──────────────────────────────────────────────────────
+(function () {
+    'use strict';
+    const THRESHOLD = 80;
+    const HINT_KEY  = 'medi_swipe_done';
+
+    // Desktop — no touch — do nothing
+    if (!('ontouchstart' in window) && navigator.maxTouchPoints === 0) return;
+
+    document.querySelectorAll('[data-dose-id]').forEach(card => {
+        if (card.dataset.status === 'Taken' || card.dataset.status === 'Skipped' || card.dataset.status === 'PendingConfirm') return;
+
+        const content = card.querySelector('.swipe-content');
+        const bg      = card.querySelector('.swipe-bg');
+        if (!content || !bg) return;
+
+        let x0 = 0, y0 = 0, dx = 0, active = false, decided = false;
+
+        card.addEventListener('touchstart', e => {
+            x0 = e.touches[0].clientX;
+            y0 = e.touches[0].clientY;
+            dx = 0; active = true; decided = false;
+            content.style.transition = 'none';
+        }, { passive: true });
+
+        card.addEventListener('touchmove', e => {
+            if (!active) return;
+            const cx = e.touches[0].clientX - x0;
+            const cy = Math.abs(e.touches[0].clientY - y0);
+            if (!decided) {
+                if (Math.abs(cx) < 5 && cy < 5) return;
+                decided = true;
+                if (cy > Math.abs(cx)) { active = false; return; }
+            }
+            if (cx <= 0) return;
+            e.preventDefault();
+            dx = cx;
+            content.style.transform = `translateX(${cx}px)`;
+            bg.style.opacity = String(Math.min(cx / THRESHOLD, 1));
+        }, { passive: false });
+
+        const snapBack = () => {
+            content.style.transition = 'transform 0.25s ease';
+            content.style.transform  = 'translateX(0)';
+            bg.style.opacity = '0';
+            dx = 0;
+        };
+
+        card.addEventListener('touchend', () => {
+            if (!active || dx === 0) { active = false; return; }
+            active = false;
+            if (dx >= THRESHOLD) {
+                const token = card.querySelector('input[name="__RequestVerificationToken"]')?.value ?? '';
+                content.style.transition = `transform 0.2s ease`;
+                content.style.transform  = `translateX(${card.offsetWidth}px)`;
+                bg.style.opacity = '1';
+
+                localStorage.setItem(HINT_KEY, '1');
+                document.getElementById('swipeHint')?.remove();
+
+                setTimeout(() => {
+                    fetch('/Dashboard?handler=MarkTaken', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                        body: `logId=${card.dataset.doseId}&__RequestVerificationToken=${encodeURIComponent(token)}`
+                    })
+                    .then(() => location.reload())
+                    .catch(() => location.reload());
+                }, 220);
+            } else {
+                snapBack();
+            }
+        });
+
+        card.addEventListener('touchcancel', () => { active = false; snapBack(); });
+    });
+
+    // First-visit hint — a gentle animated arrow on the first pending card
+    if (!localStorage.getItem(HINT_KEY)) {
+        const first = document.querySelector('[data-dose-id]:not([data-status="Taken"]):not([data-status="Skipped"]):not([data-status="PendingConfirm"])');
+        if (first) {
+            const hint = document.createElement('div');
+            hint.id = 'swipeHint';
+            hint.setAttribute('aria-hidden', 'true');
+            hint.style.cssText = 'position:absolute;inset:0;display:flex;align-items:center;' +
+                                  'padding-left:1.25rem;pointer-events:none;z-index:30;';
+            hint.innerHTML =
+                '<span class="swipe-hint-anim" style="display:flex;align-items:center;gap:4px;' +
+                'color:#94a3b8;font-size:0.7rem;font-weight:600;letter-spacing:0.03em;">' +
+                '<svg style="width:0.9rem;height:0.9rem;flex-shrink:0" fill="none" stroke="currentColor" viewBox="0 0 24 24">' +
+                '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/>' +
+                '</svg>swipe to mark taken</span>';
+            first.appendChild(hint);
+        }
+    }
+}());
+</script>
 }
